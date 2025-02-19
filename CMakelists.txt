@@ -1,0 +1,63 @@
+# 设置最低CMake版本
+cmake_minimum_required(VERSION 3.10)
+
+# 定义项目名称和版本
+project(PathLume VERSION 1.0)
+
+# 设置 C++ 标准
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# 添加外部库
+set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
+#glfw
+add_subdirectory(${EXTERNAL_DIR}/glfw)
+#glad
+add_subdirectory(${EXTERNAL_DIR}/glad)
+
+find_package(OpenGL REQUIRED)
+
+set(LIB_LINKS
+    glfw
+    glad
+    OpenGL::GL
+    )
+
+# 定义源代码文件
+file(GLOB SOURCE_FILES
+    ${CMAKE_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/pathtracer/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/softrender/*.cpp
+)
+
+file(GLOB_RECURSE IMGUI_SRCS 
+        ${EXTERNAL_DIR}/imgui/*.cpp)
+
+# 定义可执行文件
+add_executable(pathlume            # WIN32: GUI 子系统 而不是 控制台子系统
+               "${SOURCE_FILES}"
+               "${IMGUI_SRCS}"
+                )
+# 搜索目录
+target_include_directories(pathlume PUBLIC 
+                ${CMAKE_SOURCE_DIR}/src/common
+                ${CMAKE_SOURCE_DIR}/src/softrender
+                ${CMAKE_SOURCE_DIR}/src
+                ${EXTERNAL_DIR}/glm
+                ${EXTERNAL_DIR}/
+                ${EXTERNAL_DIR}/imgui
+                ${EXTERNAL_DIR}/imgui/backend
+                )
+# 链接库
+target_link_libraries(pathlume PRIVATE ${LIB_LINKS} )
+
+
+# output dir
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+
+# disable some warnings!
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(pathlume PRIVATE -Wno-pragmas)
+endif()
+
