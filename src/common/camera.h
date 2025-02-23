@@ -2,6 +2,8 @@
 #pragma once
 #include"common_include.h"
 
+class Window;
+
 enum class CameraMovement{
 	FORWARD,
 	BACKWARD,
@@ -65,4 +67,5 @@ private:
 	float near_flat_z_=1;
 	float far_flat_z_=1000;
 
+	friend Window;
 };

@@ -29,14 +29,7 @@ public:
 
     // MEMBER SETTING
 
-    inline void setCamera(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right,float fov=60,float ratio=16.0/9.0,int image_width=1024,float near=1.0,float far=1000.0){
-        camera_.setCameraPos(pos,lookat,right);
-        camera_.setFrustrum(fov,near,far);
-        camera_.setViewport(image_width,ratio);
-        resize_viewport_flag_=true;
-
-        afterCameraUpdate();
-    }
+    void setCamera(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right,float fov=60,float ratio=1.0,int image_width=1024,float near=1.0,float far=1000.0);
     // update members accrordingly after camera's update
     void afterCameraUpdate();
 
@@ -49,7 +42,7 @@ public:
     void updateViewMatrix(){ mat_view_=camera_.getViewMatrix(); }
 
 
-    inline void cleanFrame(){
+    void cleanFrame(){
         colorbuffer_->clear();
         zbuffer_->clear();
         if(setting_.rasterize_type == RasterizeType::Easy_hzb||setting_.rasterize_type == RasterizeType::Bvh_hzb)
@@ -66,9 +59,9 @@ public:
         timer_.reset();
     }
 
-    inline  Camera& getCamera(){ return camera_;}
-    inline const ColorBuffer& getColorBuffer()const{ return *colorbuffer_;}
-    inline const Scene& getScene()const{ return scene_;}
+    Camera& getCamera(){ return camera_;}
+    const ColorBuffer& getColorBuffer()const{ return *colorbuffer_;}
+    const Scene& getScene()const{ return scene_;}
 
     // PIPELINE
     void pipelineInit();
@@ -117,16 +110,7 @@ private:
     void DfsBlas_BVHwithHZB(const ASInstance& inst,int32_t nodeIdx);
 
 
-    void initRenderIoInfo(){
-        setting_.scene_filename="veach-mis";
-        setting_.bvh_leaf_num=12;
-        setting_.back_culling=true;
-        setting_.earlyz_test=true;
-        setting_.rasterize_type=RasterizeType::Naive;
-        setting_.show_tlas=false;
-        setting_.show_blas=false;
-        setting_.profile_report=true;
-    }
+    void initRenderIoInfo();
 
 private:
     bool is_init_=false;
@@ -139,8 +123,8 @@ private:
     std::shared_ptr<HZbuffer> hzb_;
     Scene scene_;
     
-    glm::mat4 mat_view_;        // model to world
-    glm::mat4 mat_perspective_; // world to NDC
+    glm::mat4 mat_view_;        // world to camera
+    glm::mat4 mat_perspective_; // camera to clipspace
     glm::mat4 mat_viewport_;    // NDC to screen
 
     AABB2d box2d_;                // screen aabb box
@@ -152,12 +136,11 @@ public:
     // for ui
     float delta_time_;          // time spent to render last frame; (ms)
     bool keys_[1024]={0}; 
-    Window window_;
     
     RenderIOInfo info_;
     RenderSetting& setting_;
     CPUTimer& timer_;            // (us)
     PerfCnt& profile_;
 
-
+    friend Window;
 };

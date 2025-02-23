@@ -18,6 +18,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
 
     if (name == "Bunny_with_wall")
     {
+        setCamera({-30, 20, -100}, {0, 0, -200}, {1, 0, 0},60,1024/800,1024,1,700);
         {
             glm::vec3 model_position{0, -100, -400};
             glm::mat4 translation = glm::translate(glm::mat4(1.0f), model_position);
@@ -55,7 +56,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
     }
     else if (name == "Bunnys_mutilights")
     {
-        setCamera({-500, 100, 100}, {0, 0, -400}, {1, 0, 1});
+        setCamera({-500, 100, 100}, {0, 0, -400}, {1, 0, 1},60,1,1024,1,1000);
         {
             glm::vec3 model_position{100, 0, -300};
             glm::mat4 translation = glm::translate(glm::mat4(1.0f), model_position);
@@ -143,7 +144,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
         */
         glm::vec3 eye(28.2792, 5.2, 1.23612e-06);
         glm::vec3 lookat(0, 2.8, 0);
-        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),20.1143,1280.0/720.0,1280,1.0,100.0);
+        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),20.1143,1280.0/720.0,1280,1.0,1000.0);
         {
             glm::mat4 model_matrix = glm::mat4(1.0f);
             addObjInstance(std::string("assets/model/veach-mis/veach-mis.obj"), model_matrix, shader, false);
@@ -177,7 +178,8 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
         */
         glm::vec3 eye(4.443147659301758, 16.934431076049805, 49.91023254394531);
         glm::vec3 lookat(-2.5734899044036865, 9.991769790649414, -10.588199615478516);
-        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),35.9834,1280.0/720,1280,1.0,300.0);
+        // setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),35.9834,1280.0/720,1280,1.0,300.0);
+        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}));
         {
             glm::mat4 model_matrix = glm::mat4(1.0f);
             addObjInstance(std::string("assets/model/bathroom2/bathroom2.obj"), model_matrix, shader, false);
@@ -189,8 +191,6 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
         exit(-1);
     }
 
-    // change buffers,windows etc.
-    afterCameraUpdate();
 
 #ifdef TIME_RECORD
     timer_.stop("loadDemoScene");

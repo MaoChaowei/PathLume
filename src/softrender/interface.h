@@ -5,6 +5,8 @@
 #include<string>
 
 struct RenderSetting{
+    bool begin_path_tracing=false;
+
     bool show_tlas=false;
     bool show_blas=false;
 
@@ -33,6 +35,9 @@ struct PerfCnt{
     int back_culled_face_num_=0;
     int clipped_face_num_=0;
     int hzb_culled_face_num_=0;
+
+    int vp_width_=0;
+    int vp_height_=0;
 };
 
 struct RenderIOInfo{

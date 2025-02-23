@@ -1,5 +1,6 @@
 #include"camera.h"
 
+/** right must be normalized! */
 void Camera::setCameraPos(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right){
 	position_=pos;
 	front_=glm::normalize(lookat-position_);

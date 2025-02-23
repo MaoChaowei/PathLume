@@ -26,6 +26,7 @@ public:
 
     void buildTLAS(){
         tlas_->buildTLAS();
+        std::cout<<"buildTLAS Done\n";
     }
 
     std::vector<ASInstance>& getAllInstances(){

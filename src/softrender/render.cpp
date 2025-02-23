@@ -16,13 +16,13 @@ void Render::pipelineInit(){
     // get default setting_
     initRenderIoInfo();
 
-    // 0. load scene
+    // 0. load scene and camera setting
     loadDemoScene(setting_.scene_filename,setting_.shader_type);
     setBVHLeafSize(setting_.bvh_leaf_num);
     scene_.buildTLAS();
 
-    // 1. init transformation
-    updateMatrix();
+    // // 1. init transformation
+    // updateMatrix();
 
     // 2. init shader
     sdptr_=std::make_shared<Shader>();
@@ -771,3 +771,32 @@ void Render::printProfile(){
     std::cout<<"hzb_culled    ="<<profile_.hzb_culled_face_num_<<std::endl;
 }
 
+void Render::initRenderIoInfo(){
+    setting_.scene_filename="veach-mis";
+    setting_.bvh_leaf_num=12;
+    setting_.back_culling=true;
+    setting_.earlyz_test=true;
+    setting_.rasterize_type=RasterizeType::Naive;
+    setting_.show_tlas=false;
+    setting_.show_blas=false;
+    setting_.profile_report=true;
+    setting_.shader_type=ShaderType::Normal;
+}
+
+/**
+ * @brief this is the top interface for camera setting, each scene must use this function to initial its camera.
+ */
+void Render::setCamera(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right,float fov,float ratio,int image_width,float near,float far){
+    if(image_width!=camera_.getImageWidth()||image_width/ratio!=camera_.getImageHeight())
+        resize_viewport_flag_=true;
+        
+    right=glm::normalize(right);
+    camera_.setCameraPos(pos,lookat,right);
+    camera_.setFrustrum(fov,near,far);
+    camera_.setViewport(image_width,ratio);
+    
+    profile_.vp_width_=camera_.getImageWidth();
+    profile_.vp_height_=camera_.getImageHeight();
+
+    afterCameraUpdate();
+}

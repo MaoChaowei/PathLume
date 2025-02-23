@@ -9,24 +9,21 @@ void Render::GameLoop(){
     int width=camera_.getImageWidth();
     int height=camera_.getImageHeight();
 
-    window_.init("PathLume", 1400, 1200);
-    window_.bindRender(this);
-    window_.bindRenderIOInfo(&info_);
+    Window window;
+    window.init("PathLume", 1400, 1200);
+    window.bindRender(this);
+    window.bindRenderIOInfo(&info_);// shared memory
 
     int cnt=0;
     auto lastTime=std::chrono::high_resolution_clock::now();
     auto curTime=lastTime;
 
-    while (!window_.shouldClose()) {
+    while (!window.shouldClose()) {
         // Processing Input
-        window_.processInput();
-        if(resize_viewport_flag_){
-            window_.resizeViewport(camera_.getImageWidth(),camera_.getImageHeight());   
-            resize_viewport_flag_=false;
-        }
+        window.processInput();
 
         // Start imGui for this frame
-        window_.newImGuiFrame(); 
+        window.newImGuiFrame(); 
 
         // clean last frame
         this->cleanFrame();
@@ -36,9 +33,9 @@ void Render::GameLoop(){
 
         // the pipeline goes well here
         this->pipelineBegin();
-        
+
         // update frameBuffer
-        window_.updateFrame(colorbuffer_->getAddr());
+        window.updateFrame(colorbuffer_->getAddr());
 
         
         curTime = std::chrono::high_resolution_clock::now();
@@ -46,10 +43,10 @@ void Render::GameLoop(){
         // std::cout<<"frame : "<<cnt++<<" ,duration:"<<duration <<" ms "<<std::endl;
 
         // render imGui for this frame
-        window_.renderImGuiFrame();
+        window.renderImGuiFrame();
 
         // postrender events
-        window_.swapBuffer();
+        window.swapBuffer();
 
         lastTime=curTime;
         this->setDeltaTime(float(duration));
@@ -60,7 +57,7 @@ void Render::GameLoop(){
 // #endif
     }// game loop
 
-    window_.shutdownImGui();
+    window.shutdownImGui();
     glfwTerminate();
 
 }

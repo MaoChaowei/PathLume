@@ -201,6 +201,12 @@ void Window::initData()
 }
 
 void Window::updateFrame(unsigned char* addr){
+    // if render ask to resize the viewport:
+    if(render_->resize_viewport_flag_){
+        resizeViewport(render_->camera_.getImageWidth(),render_->camera_.getImageHeight());   
+        render_->resize_viewport_flag_=false;
+    }
+    
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, vp_width_, vp_height_, 0, GL_RGBA, GL_UNSIGNED_BYTE,addr);// 更新纹理数据
     // clear
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -239,6 +245,7 @@ void Window::newImGuiFrame(){
 void Window::showMyImGuiWindow() {
     RenderSetting &setting = info_->setting_;
     static bool first_load=true;
+
     if(first_load){
         int width, height;
         glfwGetWindowSize(window_, &width, &height);
@@ -247,8 +254,15 @@ void Window::showMyImGuiWindow() {
         first_load=false;
     }
 
+
     if (ImGui::Begin("Render Settings")) {
+
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+        ImGui::Checkbox("Begin Path tracing", &setting.begin_path_tracing);
+
+        if (setting.begin_path_tracing)
+            ImGui::BeginDisabled();
 
         // show_tlas
         ImGui::Checkbox("Show TLAS", &setting.show_tlas);
@@ -285,8 +299,10 @@ void Window::showMyImGuiWindow() {
                 bool isSelected = (currentSceneIndex == i);
                 if (ImGui::Selectable(demoScenes[i].c_str(), isSelected)) {
                     currentSceneIndex = i;
-                    setting.scene_filename = demoScenes[i];
-                    setting.scene_change=true;
+                    if(setting.scene_filename != demoScenes[i]){
+                        setting.scene_change=true;  
+                        setting.scene_filename = demoScenes[i];
+                    }
                 }
             }
             ImGui::EndCombo();
@@ -363,6 +379,11 @@ void Window::showMyImGuiWindow() {
             ImGui::Text("Enable 'Profile Report' to view metrics.");
         }
         
+
+        if (setting.begin_path_tracing)
+            ImGui::EndDisabled();
+
+    
     }
     ImGui::End();
 
@@ -384,6 +405,10 @@ void Window::showProfileReport(){
 
         PerfCnt &profile = info_->profile_;
         CPUTimer& timer=info_->timer_;
+        ImGui::Text("Image Setting:");
+        ImGui::Text("Width: %d Height: %d",profile.vp_width_,profile.vp_height_);
+        ImGui::Text("Camera Pos: (%2.f,%2.f,%2.f)",render_->camera_.position_.x,render_->camera_.position_.y,render_->camera_.position_.z);
+
 
         ImGui::Text("* Face(Triangle) Distribution");
         ImGui::Text("· Total Faces: %d", profile.total_face_num_);
