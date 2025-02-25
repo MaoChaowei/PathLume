@@ -243,7 +243,7 @@ void Window::newImGuiFrame(){
 }
 
 void Window::showMyImGuiWindow() {
-    RenderSetting &setting = info_->setting_;
+    RasterSetting &setting = info_->raster_setting_;
     static bool first_load=true;
 
     if(first_load){
@@ -254,14 +254,15 @@ void Window::showMyImGuiWindow() {
         first_load=false;
     }
 
+    if(info_->end_path_tracing){
+        info_->begin_path_tracing=false;
+    }
 
     if (ImGui::Begin("Render Settings")) {
 
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
-        ImGui::Checkbox("Begin Path tracing", &setting.begin_path_tracing);
-
-        if (setting.begin_path_tracing)
+        if (info_->begin_path_tracing)
             ImGui::BeginDisabled();
 
         // show_tlas
@@ -370,18 +371,57 @@ void Window::showMyImGuiWindow() {
         ImGui::Checkbox("Backface Culling", &setting.back_culling);
 
         // profile_report
-        ImGui::Checkbox("Profile Report", &setting.profile_report);
+        ImGui::Checkbox("Profile Report", &info_->profile_report);
 
-
-        if (setting.profile_report) {
+        if (info_->profile_report) {
             showProfileReport();
-        } else {
+        }else{
             ImGui::Text("Enable 'Profile Report' to view metrics.");
         }
+
         
 
-        if (setting.begin_path_tracing)
+        if (info_->begin_path_tracing)
             ImGui::EndDisabled();
+        
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+        if(ImGui::CollapsingHeader("Path Tracing Setting")){
+            if (info_->begin_path_tracing)
+                ImGui::BeginDisabled();
+
+            ImGui::Text("Max Depth ");
+            ImGui::SameLine();
+            ImGui::SliderInt("##Max Depth ", (int*)&info_->tracer_setting_.max_depth_, 1, 500);
+            ImGui::Text("Tiles Size(n*n)  ");
+            ImGui::SameLine();
+            ImGui::SliderInt("##Tiles Size(n*n)  ", (int*)&info_->tracer_setting_.tiles_num_, 1, 8);
+            ImGui::Text("Sample per Pixel ");
+            ImGui::SameLine();
+            ImGui::SliderInt("##Sample per Pixel ", (int*)&info_->tracer_setting_.spp_, 1,4000);
+
+            char input[256];
+            strcpy(input,info_->tracer_setting_.filepath_.c_str());
+            ImGui::Text("File Path ");
+            ImGui::SameLine();
+            if(ImGui::InputText("##File Path ", input,sizeof(input))){
+                info_->tracer_setting_.filepath_=input;
+                input[0]='\0';
+            }
+            strcpy(input,info_->tracer_setting_.filename_.c_str());
+            ImGui::Text("File Name ");
+            ImGui::SameLine();
+            if(ImGui::InputText("##File Name ", input,sizeof(input))){
+                info_->tracer_setting_.filename_=input;
+                input[0]='\0';
+            }
+
+            if (info_->begin_path_tracing)
+                ImGui::EndDisabled();
+
+            ImGui::Checkbox("Begin Path tracing", &info_->begin_path_tracing);
+            // TODO: file path check and warning.
+
+        }
 
     
     }
@@ -406,7 +446,7 @@ void Window::showProfileReport(){
         PerfCnt &profile = info_->profile_;
         CPUTimer& timer=info_->timer_;
         ImGui::Text("Image Setting:");
-        ImGui::Text("Width: %d Height: %d",profile.vp_width_,profile.vp_height_);
+        ImGui::Text("Width: %d Height: %d",render_->camera_.image_width_,render_->camera_.image_height_);
         ImGui::Text("Camera Pos: (%2.f,%2.f,%2.f)",render_->camera_.position_.x,render_->camera_.position_.y,render_->camera_.position_.z);
 
 

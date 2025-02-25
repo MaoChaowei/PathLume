@@ -17,20 +17,11 @@
 class Render{
 public:
 
-    Render():camera_(),colorbuffer_(std::make_shared<ColorBuffer>(camera_.getImageWidth(),camera_.getImageHeight())),
-            zbuffer_(std::make_shared<DepthBuffer>(camera_.getImageWidth(),camera_.getImageHeight())),
-            info_(),setting_(info_.setting_ ),timer_(info_.timer_),profile_(info_.profile_){
-
-        box2d_.min={0,0};
-        box2d_.max={camera_.getImageWidth()-1,camera_.getImageHeight()-1};
-        box3d_.min={0,0,-1};
-        box3d_.max={camera_.getImageWidth()-1,camera_.getImageHeight()-1,1};
-    }
+    Render();
 
     // MEMBER SETTING
 
     void setCamera(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right,float fov=60,float ratio=1.0,int image_width=1024,float near=1.0,float far=1000.0);
-    // update members accrordingly after camera's update
     void afterCameraUpdate();
 
     void setBVHLeafSize(uint32_t num){scene_.setBVHsize(num);}
@@ -40,30 +31,13 @@ public:
 
     void updateMatrix();
     void updateViewMatrix(){ mat_view_=camera_.getViewMatrix(); }
-
-
-    void cleanFrame(){
-        colorbuffer_->clear();
-        zbuffer_->clear();
-        if(setting_.rasterize_type == RasterizeType::Easy_hzb||setting_.rasterize_type == RasterizeType::Bvh_hzb)
-            hzb_->clear();
-        
-        if(setting_.profile_report){
-            profile_.total_face_num_=0;
-            profile_.shaded_face_num_=0;
-            profile_.back_culled_face_num_=0;
-            profile_.hzb_culled_face_num_=0;
-            profile_.clipped_face_num_=0;
-        }
-
-        timer_.reset();
-    }
+    void cleanFrame();
 
     Camera& getCamera(){ return camera_;}
     const ColorBuffer& getColorBuffer()const{ return *colorbuffer_;}
     const Scene& getScene()const{ return scene_;}
 
-    // PIPELINE
+    // RASTERIZATION PIPELINE
     void pipelineInit();
     void pipelineBegin();
 
@@ -79,8 +53,22 @@ public:
 
     int pipelineClipping(std::vector<Vertex>& v,std::vector<Vertex>& out);
     void clipWithPlane(ClipPlane plane,std::vector<Vertex>&in,std::vector<Vertex>&out);
-    
     bool backCulling(const glm::vec3& face_norm,const glm::vec3& dir)const;
+
+    // PATH TRACING 
+    void startPathTracer(const RTracingSetting& setting){
+        
+        // preprocess: create film and tiles
+        std::shared_ptr<Film> film=camera_.getNewFilm();
+        film->initTiles(setting.tiles_num_,colorbuffer_);
+        
+        // rendering
+        film->parallelTiles();
+        
+        // emit finish signal
+        info_.end_path_tracing=true;
+
+    }
 
 
     // INTERFACE
@@ -138,7 +126,7 @@ public:
     bool keys_[1024]={0}; 
     
     RenderIOInfo info_;
-    RenderSetting& setting_;
+    RasterSetting& setting_;
     CPUTimer& timer_;            // (us)
     PerfCnt& profile_;
 

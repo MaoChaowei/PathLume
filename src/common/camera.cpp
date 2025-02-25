@@ -204,3 +204,23 @@ const bool Camera::needUpdateView(){
 	}
 	return false;
 }
+
+
+std::shared_ptr<Film> Camera::getNewFilm(){
+	auto film=std::make_shared<Film>();
+	film->resolution_=glm::vec2(this->image_width_,this->image_height_);
+
+	assert(abs(glm::length(this->front_)-1.0)<1e-6);
+	assert(abs(glm::length(this->up_)-1.0)<=1e-6);
+	assert(abs(glm::length(this->right_)-1.0)<=1e-6);
+	film->up_lt_pos_=this->position_
+					+this->near_flat_z_*this->front_
+					+this->half_near_height_*this->up_
+					-this->half_near_width_*this->right_;
+	float coef=this->half_near_width_*2.0/this->image_width_;
+	film->deltaX_=coef*this->right_;
+	coef=this->half_near_height_*2.0/this->image_height_;
+	film->deltaY_=-coef*this->up_;
+
+	return std::move(film);
+}

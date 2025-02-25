@@ -1,6 +1,6 @@
 #include"render.h"
 #include"window.h"
-
+#include"thread"
 
 void Render::GameLoop(){
 
@@ -18,21 +18,35 @@ void Render::GameLoop(){
     auto lastTime=std::chrono::high_resolution_clock::now();
     auto curTime=lastTime;
 
+    static bool during_path_tracing=false;
     while (!window.shouldClose()) {
         // Processing Input
         window.processInput();
 
         // Start imGui for this frame
+        if(info_.end_path_tracing){
+            during_path_tracing=false;
+            info_.begin_path_tracing=false;
+        }
+
         window.newImGuiFrame(); 
 
-        // clean last frame
-        this->cleanFrame();
+        if(!info_.begin_path_tracing){
+             // move camera according to the input
+            this->moveCamera();
 
-        // change camera according to the input
-        this->moveCamera();
+            // clean last frame
+            this->cleanFrame();
 
-        // the pipeline goes well here
-        this->pipelineBegin();
+            // the pipeline goes well here
+            this->pipelineBegin();
+        }
+        
+        else if(!during_path_tracing){
+            std::thread rtwork(&Render::startPathTracer,this,this->info_.tracer_setting_);
+            rtwork.detach();
+            during_path_tracing=true;
+        }
 
         // update frameBuffer
         window.updateFrame(colorbuffer_->getAddr());

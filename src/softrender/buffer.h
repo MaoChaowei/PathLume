@@ -16,20 +16,21 @@ public:
         pixel_num_=width*height;
     }
 
-    inline void clear(const unsigned char num=0){
+    void clear(const unsigned char num=0){
         std::fill(addr_,addr_+width_*height_*4,num);
     }
-    inline void reSetBuffer(int width,int height){
+    void reSetBuffer(int width,int height){
         width_=width;
         height_=height;
         delete []addr_;
         addr_=new unsigned char[width*height*4];
         pixel_num_=width*height;
     }
-    inline unsigned char* getAddr()const{return addr_;}
+    unsigned char* getAddr()const{return addr_;}
+    uint32_t getPixelNum()const{return pixel_num_;}
 
     // make sure that x and y must in the window
-    inline void setPixel(int x,int y,glm::vec4 color)const{
+    void setPixel(int x,int y,glm::vec4 color)const{
         int idx=y*width_+x;
         if(idx>=pixel_num_||idx<0) 
             return;
