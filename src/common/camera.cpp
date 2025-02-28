@@ -2,6 +2,7 @@
 
 /** right must be normalized! */
 void Camera::setCameraPos(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right){
+	assert(abs(glm::length(right)-1.0)<1e-6);
 	position_=pos;
 	front_=glm::normalize(lookat-position_);
 	right_=right;
@@ -206,7 +207,7 @@ const bool Camera::needUpdateView(){
 }
 
 
-std::shared_ptr<Film> Camera::getNewFilm(){
+std::shared_ptr<Film> Camera::getNewFilm()const{
 	auto film=std::make_shared<Film>();
 	film->resolution_=glm::vec2(this->image_width_,this->image_height_);
 

@@ -21,7 +21,7 @@ public:
 	void setFrustrum(float fov,float near,float far);
 	void setViewport(uint32_t width,float ratio);
     void setCameraPos(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right);
-	std::shared_ptr<Film> getNewFilm();
+	std::shared_ptr<Film> getNewFilm() const;
 
     glm::mat4 getViewMatrix()const;
 	glm::mat4 getPerspectiveMatrix()const;

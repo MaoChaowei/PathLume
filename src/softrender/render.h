@@ -13,6 +13,7 @@
 #include"softrender/scanline.h"
 #include"softrender/interface.h"
 #include"window.h"
+#include"pathtracer.h"
 
 class Render{
 public:
@@ -56,18 +57,12 @@ public:
     bool backCulling(const glm::vec3& face_norm,const glm::vec3& dir)const;
 
     // PATH TRACING 
-    void startPathTracer(const RTracingSetting& setting){
-        
-        // preprocess: create film and tiles
-        std::shared_ptr<Film> film=camera_.getNewFilm();
-        film->initTiles(setting.tiles_num_,colorbuffer_);
-        
-        // rendering
-        film->parallelTiles();
-        
-        // emit finish signal
-        info_.end_path_tracing=true;
-
+    void startPathTracer(){
+        PathTracer tracer(&camera_,&scene_,colorbuffer_);
+        if(tracer.Begin(info_.tracer_setting_)){
+            info_.end_path_tracing=true;
+            // write to file
+        }
     }
 
 

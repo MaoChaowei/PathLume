@@ -254,10 +254,6 @@ void Window::showMyImGuiWindow() {
         first_load=false;
     }
 
-    if(info_->end_path_tracing){
-        info_->begin_path_tracing=false;
-    }
-
     if (ImGui::Begin("Render Settings")) {
 
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -418,7 +414,29 @@ void Window::showMyImGuiWindow() {
             if (info_->begin_path_tracing)
                 ImGui::EndDisabled();
 
+
             ImGui::Checkbox("Begin Path tracing", &info_->begin_path_tracing);
+
+            if(info_->begin_path_tracing){
+                if(!info_->end_path_tracing)
+                    ImGui::BeginDisabled();
+                 
+                bool reset=false;
+                if(ImGui::Button("confirmation")){
+                    // TODO: export file
+                    std::cout<<"TODO: export file\n";
+                    reset=true; // reset all flags about path tracing
+                }
+
+                if (!info_->end_path_tracing)
+                    ImGui::EndDisabled();
+
+                if(reset){
+                    info_->begin_path_tracing=false;
+                    info_->end_path_tracing=false;
+                }
+                
+            }
             // TODO: file path check and warning.
 
         }
@@ -448,7 +466,7 @@ void Window::showProfileReport(){
         ImGui::Text("Image Setting:");
         ImGui::Text("Width: %d Height: %d",render_->camera_.image_width_,render_->camera_.image_height_);
         ImGui::Text("Camera Pos: (%2.f,%2.f,%2.f)",render_->camera_.position_.x,render_->camera_.position_.y,render_->camera_.position_.z);
-
+        ImGui::Text("Near Z: %2.f; Far Z: %2.f;",render_->camera_.near_flat_z_,render_->camera_.far_flat_z_);
 
         ImGui::Text("* Face(Triangle) Distribution");
         ImGui::Text("· Total Faces: %d", profile.total_face_num_);

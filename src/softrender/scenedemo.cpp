@@ -18,7 +18,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
 
     if (name == "Bunny_with_wall")
     {
-        setCamera({-30, 20, -100}, {0, 0, -200}, {1, 0, 0},60,1024/800,1024,1,700);
+        setCamera({-30, 20, -100}, {0, 0, -200}, {1, 0, 0},60,1024/800,1024,1,500);
         {
             glm::vec3 model_position{0, -100, -400};
             glm::mat4 translation = glm::translate(glm::mat4(1.0f), model_position);

@@ -92,7 +92,8 @@ public:
             }
             
         }
-        std::cout<<"pass="<<pass<<std::endl;
+        pass==true?std::cout<<"pass= true\n":std::cout<<"pass= false\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         std::cout<<"duration="<<duration.count()/1000.0<<std::endl;
 
 

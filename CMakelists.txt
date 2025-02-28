@@ -43,6 +43,7 @@ add_executable(pathlume            # WIN32: GUI 子系统 而不是 控制台子
 target_include_directories(pathlume PUBLIC 
                 ${CMAKE_SOURCE_DIR}/src/common
                 ${CMAKE_SOURCE_DIR}/src/softrender
+                ${CMAKE_SOURCE_DIR}/src/pathtracer
                 ${CMAKE_SOURCE_DIR}/src
                 ${EXTERNAL_DIR}/glm
                 ${EXTERNAL_DIR}/

@@ -40,7 +40,6 @@ void Render::pipelineInit()
 
     // 2. init shader
     sdptr_ = std::make_shared<Shader>();
-    sdptr_->setFrustum(camera_.getNear(), camera_.getFar());
     sdptr_->bindTimer(&timer_);
 
     // 3. init rastertizer
@@ -255,6 +254,7 @@ void Render::pipelineBegin()
     // prepare for shader
     sdptr_->bindCamera(std::make_shared<Camera>(camera_));
     sdptr_->bindLights(scene_.getLights());
+    sdptr_->setFrustum(camera_.getNear(), camera_.getFar());
 
     // The pipeline happens here
     if (setting_.rasterize_type == RasterizeType::Bvh_hzb)
@@ -884,14 +884,14 @@ void Render::initRenderIoInfo()
     info_.profile_report = true;
 
     // rasterizer
-    setting_.scene_filename = "veach-mis";
+    setting_.scene_filename = "cornell-box";// cornell-box // veach-mis
     setting_.bvh_leaf_num = 12;
     setting_.back_culling = true;
     setting_.earlyz_test = true;
     setting_.rasterize_type = RasterizeType::Naive;
     setting_.show_tlas = false;
     setting_.show_blas = false;
-    setting_.shader_type = ShaderType::Normal;
+    setting_.shader_type = ShaderType::Depth;
 
     // path tracer
     info_.tracer_setting_.filename_=info_.raster_setting_.scene_filename+"_res.png";

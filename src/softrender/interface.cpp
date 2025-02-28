@@ -18,16 +18,12 @@ void Render::GameLoop(){
     auto lastTime=std::chrono::high_resolution_clock::now();
     auto curTime=lastTime;
 
-    static bool during_path_tracing=false;
+    static bool during_path_tracing=false;  // trigger pathtracing only once
     while (!window.shouldClose()) {
         // Processing Input
         window.processInput();
 
         // Start imGui for this frame
-        if(info_.end_path_tracing){
-            during_path_tracing=false;
-            info_.begin_path_tracing=false;
-        }
 
         window.newImGuiFrame(); 
 
@@ -40,10 +36,11 @@ void Render::GameLoop(){
 
             // the pipeline goes well here
             this->pipelineBegin();
+
+            during_path_tracing=false;
         }
-        
         else if(!during_path_tracing){
-            std::thread rtwork(&Render::startPathTracer,this,this->info_.tracer_setting_);
+            std::thread rtwork(&Render::startPathTracer,this);
             rtwork.detach();
             during_path_tracing=true;
         }
