@@ -1,3 +1,4 @@
+#pragma once
 #include"common/common_include.h"
 #include"interface.h"
 #include"camera.h"
@@ -5,7 +6,7 @@
 #include"scene_loader.h"
 
 /**
- * @brief PathTracer encapsulates the top interface.
+ * @brief `PathTracer` encapsulates the top interface of path tracing algorithmn.
  * 
  */
 class PathTracer{
@@ -19,7 +20,7 @@ public:
     bool Begin(const RTracingSetting& setting){
         // preprocess: create film and tiles
         std::shared_ptr<Film> film=camera_->getNewFilm();
-        film->initTiles(setting.tiles_num_,colorbuffer_);
+        film->initTiles(setting,colorbuffer_,scene_);
         
         // rendering
         film->parallelTiles();

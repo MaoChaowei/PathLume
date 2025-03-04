@@ -1,4 +1,5 @@
 # pragma once
+#include <random>
 #include"common_include.h"
 #include"AABB.h"
 
@@ -30,3 +31,35 @@ bool isEqual(float a, float b, float eps=srender::EPSILON);
 
 std::ostream& operator<<(std::ostream& os, const AABB3d& aabb);
 
+// random number generator
+
+class PCGRandom {
+public:
+    // use random seed
+    PCGRandom() : rng(rd()) {}  
+    // specify seed
+    explicit PCGRandom(uint64_t seed) : rng(seed) {}
+
+    // get random integer (0 - MAX_UINT64)
+    uint64_t nextInt() {
+        return rng();
+    }
+
+    // get random integer [min, max]
+    uint64_t nextInt(uint64_t min, uint64_t max) {
+        std::uniform_int_distribution<uint64_t> dist(min, max);
+        return dist(rng);
+    }
+
+    // get random double [min, max)
+    double nextFloat(double min=0.0, double max=1.0) {
+        std::uniform_real_distribution<double> dist(min, max);
+        return dist(rng);
+    }
+
+    std::mt19937_64* getRNG(){return &rng;}
+
+private:
+    std::random_device rd; // get random seed
+    std::mt19937_64 rng; 
+};

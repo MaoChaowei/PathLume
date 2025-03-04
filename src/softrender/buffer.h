@@ -30,7 +30,7 @@ public:
     uint32_t getPixelNum()const{return pixel_num_;}
 
     // make sure that x and y must in the window
-    void setPixel(int x,int y,glm::vec4 color)const{
+    void setPixel(int x,int y,const glm::vec4& color)const{
         int idx=y*width_+x;
         if(idx>=pixel_num_||idx<0) 
             return;

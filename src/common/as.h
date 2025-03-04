@@ -3,6 +3,7 @@
 #include "common/utils.h"
 #include "bvhbuilder.h"
 #include"softrender/shader.h"
+#include"pathtracer/hitem.h"
 
 class BLAS
 {
@@ -24,7 +25,8 @@ public:
     std::unique_ptr<std::vector<uint32_t>> primitives_indices_;     // primitives_indices_ points to object_'s primitive
 };
 
-struct PrimitiveHolder{         // because of the neccessity of clipping, each frame updates all the primitives of the instance.
+class PrimitiveHolder: public Hitem{         // because of the neccessity of clipping, each frame updates all the primitives of the instance.
+public:
     ClipFlag clipflag_;         // 0: accepted; 1: clipped; 2: refused;
     int32_t mtlidx_;            // point to its material in blas_
     int32_t vertex_start_pos_;  // point to vertices_
@@ -36,6 +38,13 @@ struct PrimitiveHolder{         // because of the neccessity of clipping, each f
         vertex_start_pos_(startpos),
         vertex_num_(num)
     {}
+
+    bool anyHit(const Ray& ray)override{
+        return false;
+    }
+    void rayIntersect(const Ray& ray,IntersectRecord& inst)override{
+
+    }
 };
 
 class ASInstance{

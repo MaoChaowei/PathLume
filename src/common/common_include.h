@@ -14,9 +14,9 @@
 #include<memory>
 #include<math.h>
 #include<algorithm>
+#include<limits>
 
-// switch for time-recording
-#define TIME_RECORD
+#define TIME_RECORD // a switch of time recording
 
 
 namespace srender{
@@ -26,5 +26,6 @@ const float EPSILON = 1e-6f;
 const int INF = 2147483647;
 const float NEAR_Z=-1;
 const float FAR_Z=1;
+const float MAXFLOAT=std::numeric_limits<float>::max();
 
 }

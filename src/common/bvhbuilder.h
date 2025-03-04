@@ -2,12 +2,13 @@
 #include "common/common_include.h"
 #include "common/AABB.h"
 #include"object.h"
+#include"pathtracer/hitem.h"
 #include<algorithm>
 
 // forward declair
 class ASInstance;
 
-struct BVHnode
+struct BVHnode:public Hitem
 {
     int left;
     int right;
@@ -19,6 +20,13 @@ struct BVHnode
     unsigned int primitive_num ;
 
     BVHnode():left(-1),right(-1),prmitive_start(0),primitive_num(0){}
+
+    bool anyHit(const Ray& ray)override{
+        return false;
+    }
+    void rayIntersect(const Ray& ray,IntersectRecord& inst)override{
+
+    }
 };
 
 

@@ -33,6 +33,8 @@ struct RTracingSetting{
     uint32_t spp_;
     std::string filepath_;
     std::string filename_;
+    // havn't supported yet
+    std::string sampler_;
 };
 
 struct PerfCnt{

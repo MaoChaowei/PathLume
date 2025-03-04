@@ -1,9 +1,12 @@
+#pragma once
 #include"common/common_include.h"
 #include"buffer.h"
 #include <chrono>
 #include <thread>
 #include <mutex>
-
+#include"scene_loader.h"
+#include"interface.h"
+#include"sample.h"
 
 struct TileMessageBlock{
     int cnt=0;
@@ -16,18 +19,23 @@ class Camera;
 class Tile{
 public:
     Tile()=delete;
-    Tile(Film* film,glm::vec2 pnum,glm::vec2 px_offset,glm::vec3 up_lt,std::shared_ptr<ColorBuffer> buffer)
-        :film_(film),pixels_num_(pnum),first_pixel_offset_(px_offset),up_lt_pos_(up_lt),shared_buffer_(buffer){}
+    Tile(Film* film,glm::vec2 pnum,glm::vec2 px_offset,glm::vec3 up_lt,std::shared_ptr<ColorBuffer> buffer,const Scene* scene,const RTracingSetting& setting)
+        :film_(film),pixels_num_(pnum),first_pixel_offset_(px_offset),up_lt_pos_(up_lt),shared_buffer_(buffer),scene_(scene),setting_(setting){
+
+        }
 
     void render();
+    void setPixel(const uint32_t x,const uint32_t y,const glm::vec4& color);
 
 private:
     glm::vec2 pixels_num_; //{width,height}
-    glm::vec2 first_pixel_offset_; 
-    glm::vec3 up_lt_pos_;
+    glm::vec2 first_pixel_offset_; // the left_top pixel's index in the whole film.
+    glm::vec3 up_lt_pos_;          // the left_top pixel's world position.
     Film* film_;
+    const Scene* scene_;
+    const RTracingSetting& setting_;
     std::shared_ptr<ColorBuffer> shared_buffer_;
-
+    std::unique_ptr<Sampler> sampler_;
     
     friend Film;
 };
@@ -36,9 +44,9 @@ class Film{
 public:
     Film(){};
 
-    void initTiles(uint32_t num,std::shared_ptr<ColorBuffer> buffer){
+    void initTiles(const RTracingSetting& setting,std::shared_ptr<ColorBuffer> buffer,const Scene* scene){
 
-        tile_num_=num;
+        tile_num_=setting.tiles_num_;
         tile_msg_=std::make_shared<TileMessageBlock>();
         tile_msg_->arr_check.resize(buffer->getPixelNum());
         assert(buffer->getPixelNum()==resolution_.x*resolution_.y);
@@ -51,19 +59,25 @@ public:
         glm::vec3 vec_h=float(h)*deltaY_;
         
         // each row
-        for(int i=0;i<num;++i){
+        for(int i=0;i<tile_num_;++i){
             
-            int px_h=(i==num-1)?resolution_.y-(num-1)*h:h;
+            int px_h=(i==tile_num_-1)?resolution_.y-(tile_num_-1)*h:h;
             
             // each column
-            for(int j=0;j<num;++j){
-                int px_w=(j==num-1)?resolution_.x-(num-1)*w:w;
+            for(int j=0;j<tile_num_;++j){
+                int px_w=(j==tile_num_-1)?resolution_.x-(tile_num_-1)*w:w;
 
                 glm::vec2 px_num(px_w,px_h);
                 glm::vec3 pos=up_lt_pos_+float(i)*vec_h+float(j)*vec_w;
                 glm::vec2 px_offset(j*w,i*h);
-                tiles_.emplace_back(std::make_unique<Tile>(this,px_num,px_offset,pos,buffer));
+                tiles_.emplace_back(std::make_unique<Tile>(this,px_num,px_offset,pos,buffer,setting));
             }
+        }
+
+        // init sampler
+        for(int i=0;i<tiles_.size();++i){
+            tiles_[i]->sampler_=std::make_unique<StratifiedSampler>(setting.spp_, i,true);
+            tiles_[i]->sampler_->preAddSamples2D(1);    // image samples
         }
     }
 
@@ -77,6 +91,7 @@ public:
 
         for(auto& t:threads)
             t.join();
+
         auto end = std::chrono::system_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-begin);
 
@@ -109,6 +124,7 @@ private:
     glm::vec3 deltaY_;
     uint32_t tile_num_;
     std::vector<std::unique_ptr<Tile>> tiles_;
+    glm::vec3 camera_pos_;
     
     // Critical Resource
     std::shared_ptr<TileMessageBlock> tile_msg_;

@@ -1,7 +1,7 @@
 #pragma once
 #include<iostream>
 #include"common_include.h"
-#include"algorithm"
+#include<algorithm>
 
 struct AABB2d{
     glm::vec2 min;
