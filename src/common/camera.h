@@ -1,9 +1,10 @@
 /* `Camera` defines the virtual camera and the properties of the final image */
 #pragma once
 #include"common_include.h"
-#include"pathtracer/film.h"
+
 
 class Window;
+class Film;
 
 enum class CameraMovement{
 	FORWARD,

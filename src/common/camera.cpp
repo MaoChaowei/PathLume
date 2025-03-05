@@ -1,4 +1,5 @@
 #include"camera.h"
+#include"pathtracer/film.h"
 
 /** right must be normalized! */
 void Camera::setCameraPos(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right){

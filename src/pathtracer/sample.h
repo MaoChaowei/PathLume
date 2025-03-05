@@ -1,3 +1,4 @@
+#pragma once
 #include"common/common_include.h"
 #include"common/utils.h"
 #include <limits>
@@ -9,10 +10,12 @@ public:
     Sampler(uint32_t sample_per_pixel,uint64_t rng_seed=12):spp_(sample_per_pixel),pcgRNG_(rng_seed){}
     virtual ~Sampler(){}
 
+    /**
+     * @brief inform sampler the dimension of the array of sample
+     */
     uint32_t preAddSample1D(uint32_t dim_num){
         for(int i=0;i<dim_num;++i){
             samples1D_.push_back(std::vector<float>(spp_,0));
-            generateSamples1D(samples1D_.size()-1);
         }
         return samples1D_.size();
     }
@@ -20,28 +23,43 @@ public:
     uint32_t preAddSamples2D(uint32_t dim_num){
         for(int i=0;i<dim_num;++i){
             samples2D_.push_back(std::vector<glm::vec2>(spp_,glm::vec2(0.,0.)));
-            generateSamples1D(samples2D_.size()-1);
         }
         return samples2D_.size();
     }
 
-    void startSampler(){
+    /**
+     * @brief reset samples.
+     * 
+     */
+    void startPixle(){
         cur_sample_idx_=0;
         cur_1Ddim_=cur_2Ddim_=0;
+
+        for(int i=0;i<samples1D_.size();++i){
+            generateSamples1D(i);
+        }
+        for(int i=0;i<samples2D_.size();++i){
+            generateSamples2D(i);
+        }
+
     }
 
-    // move on to the next iamge sample
-    bool nextPixelSample(){
+    /**
+     * @brief move on to the next pixel sample
+     */
+    bool nextPixleSample(){
         if(cur_sample_idx_>=spp_)   
             return false;
 
-        ++cur_sample_idx_;
+        cur_sample_idx_=0;
         cur_1Ddim_=cur_2Ddim_=0;
 
         return true;
     }
 
-    // If samples1D has enough samples, we simply fetch. Otherwise, degenerate into pcg random number generator.
+    /**
+     * @brief Get the Sample1 D object. If samples1D has enough samples, we simply fetch. Otherwise, degenerate into pcg random number generator.
+     */
     float getSample1D(){
         assert(cur_sample_idx_<spp_);
 
@@ -55,7 +73,9 @@ public:
         return ans;
     }
 
-    // If samples2D has enough samples, we simply fetch. Otherwise, degenerate into pcg random number generator.
+    /**
+     * @brief Get the Sample2 D object. If samples2D has enough samples, we simply fetch. Otherwise, degenerate into pcg random number generator.
+     */
     glm::vec2 getSample2D(){
         assert(cur_sample_idx_<spp_);
 
@@ -100,7 +120,7 @@ protected:
 
 class StratifiedSampler:public Sampler{
 public:
-    StratifiedSampler(uint32_t sample_per_pixel,uint64_t rng_seed=12,bool jittered):Sampler(sample_per_pixel,rng_seed){
+    StratifiedSampler(uint32_t sample_per_pixel,uint64_t rng_seed=12,bool jittered=true):Sampler(sample_per_pixel,rng_seed){
         spp_=getClosestPerfectSquare(spp_);
         jittered_flag_=jittered;
     }

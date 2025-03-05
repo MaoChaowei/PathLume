@@ -58,11 +58,21 @@ public:
 
     // PATH TRACING 
     void startPathTracer(){
-        PathTracer tracer(&camera_,&scene_,colorbuffer_);
-        if(tracer.Begin(info_.tracer_setting_)){
-            info_.end_path_tracing=true;
-            // write to file
-        }
+        // preprocess: create film and tiles
+        std::shared_ptr<Film> film=camera_.getNewFilm();
+        film->initTiles(info_.tracer_setting_,colorbuffer_,&scene_);
+        
+        // rendering
+        film->parallelTiles();
+        
+        // write to file
+
+        
+        // PathTracer tracer(&camera_,&scene_,colorbuffer_);
+        // if(tracer.Begin(info_.tracer_setting_)){
+        //     info_.end_path_tracing=true;
+        //     // write to file
+        // }
     }
 
 

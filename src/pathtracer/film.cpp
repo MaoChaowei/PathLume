@@ -1,12 +1,13 @@
 #include"film.h"
 
 void Tile::render(){
-    sampler_->startSampler();
 
     for(int j=0;j<pixels_num_.y;++j){
         for(int i=0;i<pixels_num_.x;++i){
             glm::vec3 color(0);
+            sampler_->startPixle();
             for(int s=0;s<setting_.spp_;++s){
+                // generate a ray
                 glm::vec2 offset=sampler_->getSample2D();
                 glm::vec3 origin=film_->camera_pos_;
                 glm::vec3 sample_pos=up_lt_pos_+float(i)*film_->deltaX_+float(j)*film_->deltaY_;
@@ -15,14 +16,14 @@ void Tile::render(){
                 float endT=srender::MAXFLOAT;
 
                 Ray ray(origin,direction,startT,endT);
-                // for each sample, trace a ray and get color
+                // trace the ray and get its color
                 // color+=intergrator->traceRay(ray,scene_)
                 
-                sampler_->nextPixelSample();
+                // move on to the next image sample.
+                sampler_->nextPixleSample();
             }
             // set color to buffer
             setPixel(i,j,glm::vec4(127.,0,0,1));
-            // std::this_thread::sleep_for(std::chrono::microseconds(1000));
 
         }
     }

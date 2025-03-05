@@ -70,7 +70,7 @@ public:
                 glm::vec2 px_num(px_w,px_h);
                 glm::vec3 pos=up_lt_pos_+float(i)*vec_h+float(j)*vec_w;
                 glm::vec2 px_offset(j*w,i*h);
-                tiles_.emplace_back(std::make_unique<Tile>(this,px_num,px_offset,pos,buffer,setting));
+                tiles_.emplace_back(std::make_unique<Tile>(this,px_num,px_offset,pos,buffer,scene,setting));
             }
         }
 
