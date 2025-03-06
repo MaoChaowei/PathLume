@@ -1,5 +1,104 @@
 #include"as.h"
+#include"hitem.h"
 
+/**
+* @brief trace a ray in the bvh acceleration struct
+* 
+* @param ray : ray must in bvh's space(tlas: world space; blas: model space)
+* @param node_idx : the current node
+* @return true : found a hit
+*/
+bool AccelStruct::traceRayInAccel(const Ray& ray,int32_t node_idx,IntersectRecord& inst,bool is_tlas)const{
+   assert(node_idx>=0&&node_idx<tree_->size());
+
+   if(!tree_->at(node_idx).anyHit(ray))
+       return false;
+    
+    auto right=tree_->at(node_idx).right;
+    auto left=tree_->at(node_idx).left;
+
+    // reach leaf node, go down to next level
+    if(left==-1&&right==-1){
+
+        if(is_tlas) inst.as_node_.tlas_node_idx_=node_idx;
+        else inst.as_node_.blas_node_idx_=node_idx;
+        
+        return traceRayInDetail(ray,inst);
+    }
+    assert(left!=-1&&right!=-1);
+
+    IntersectRecord left_hit,right_hit;
+    left_hit.t_=right_hit.t_=srender::MAXFLOAT;
+
+    bool flag_lt=traceRayInAccel(ray,left,left_hit,is_tlas);
+    bool flag_rt=traceRayInAccel(ray,right,right_hit,is_tlas);
+
+    if(flag_lt||flag_rt){
+        inst=left_hit.t_<right_hit.t_?left_hit:right_hit;
+        return true;
+    }
+    else
+        return false;
+    
+}
+
+/**
+ * @brief BLAS carries on a hit test among all the triangles inside a box(i.e. bvh-leaf)
+ * @param inst: record the nearest hit
+ * @return true : do get a hit
+ */
+bool BLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
+
+    bool hitted=false;
+    int id=inst.as_node_.blas_node_idx_;
+    BVHnode& node=tree_->at(id);
+    auto& vertices=object_->getVertices();
+
+    // set t_ to maxfloat for recording the nearest t later.
+    inst.t_=srender::MAXFLOAT;
+
+    // check all the primitives inside
+    for(int i=0;i<node.primitive_num;++i){
+        // construct Hitem
+        std::vector<const Vertex*> temp;
+        auto idx=primitives_indices_->at(node.prmitive_start+i);
+        for(int j=0;j<3;++j){
+            temp.push_back(&vertices[idx*3+j]);
+        }
+        Htriangle tri(temp[0],temp[1],temp[2],object_->getFaceMtl(idx));
+
+        // record the nearest hit
+        if(tri.rayIntersect(ray,inst))
+            hitted=true;
+    }
+
+    return hitted;
+
+}
+
+/**
+ * @brief tranform ray into instance's model world, and continue to trace ray in blas.
+ * 
+ */
+bool TLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
+    
+    auto& instance=all_instances_[inst.as_node_.tlas_node_idx_];
+    // transform ray into model's space
+    auto mat_inv=glm::inverse(instance.modle_);
+    auto morigin=mat_inv*glm::vec4(ray.origin_,1.0);
+    auto mdir=mat_inv*glm::vec4(ray.dir_,0.0);
+    Ray mray(morigin,mdir);
+
+    if(instance.blas_->traceRayInAccel(mray,0,inst,false)){
+        // transform intersect record back to world space.
+        inst.pos_=instance.modle_*glm::vec4(inst.pos_,1.0);
+        inst.wo_=instance.modle_*glm::vec4(inst.wo_,0.0);
+        inst.normal_=glm::transpose(mat_inv)*glm::vec4(inst.normal_,0.0);
+        
+        return true;
+    }
+    return false;
+}
 
 ASInstance::ASInstance(std::shared_ptr<BLAS>blas,const glm::mat4& mat,ShaderType shader):blas_(blas),modle_(mat),shader_(shader){
         AABB3d rootBox=blas_->tree_->at(0).bbox;

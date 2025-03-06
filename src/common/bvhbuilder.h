@@ -21,11 +21,33 @@ struct BVHnode:public Hitem
 
     BVHnode():left(-1),right(-1),prmitive_start(0),primitive_num(0){}
 
-    bool anyHit(const Ray& ray)override{
-        return false;
-    }
-    void rayIntersect(const Ray& ray,IntersectRecord& inst)override{
+    bool anyHit(const Ray& ray)const override{
+        // set a infinite interval
+        float interval_min=srender::MINFLOAT,interval_max=srender::MAXFLOAT;
 
+        // for each axis, caculate the interval of t
+        for(int i=0;i<3;++i){
+            if(abs(ray.dir_[i])<srender::EPSILON){
+                if(ray.origin_[i]<=bbox.min[i]||ray.origin_[i]>=bbox.max[i])
+                    return false;
+            }
+            else{
+                float tmin=(bbox.min[i]-ray.origin_[i])*ray.inv_dir_[i];
+                float tmax=(bbox.max[i]-ray.origin_[i])*ray.inv_dir_[i];
+                if(tmin>tmax)
+                    std::swap(tmin,tmax);
+                if(tmin>interval_min) interval_min=tmin;
+                if(tmax<interval_max) interval_max=tmax;
+
+                if(interval_min>=interval_max)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+    bool rayIntersect(const Ray& ray,IntersectRecord& inst)const override{
+        return anyHit(ray);
     }
 };
 

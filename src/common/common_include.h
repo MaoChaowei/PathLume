@@ -27,5 +27,6 @@ const int INF = 2147483647;
 const float NEAR_Z=-1;
 const float FAR_Z=1;
 const float MAXFLOAT=std::numeric_limits<float>::max();
+const float MINFLOAT=std::numeric_limits<float>::min();
 
 }

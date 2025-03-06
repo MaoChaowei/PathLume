@@ -44,6 +44,9 @@ public:
     TLAS& getTLAS(){
         return *tlas_;
     }
+    const TLAS& getConstTLAS()const{
+        return *tlas_;
+    }
 
     int getFaceNum(){return face_num_;}
 

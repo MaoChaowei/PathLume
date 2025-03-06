@@ -14,6 +14,7 @@
 #include"softrender/interface.h"
 #include"window.h"
 #include"pathtracer.h"
+#include"film.h"
 
 class Render{
 public:
@@ -67,12 +68,6 @@ public:
         
         // write to file
 
-        
-        // PathTracer tracer(&camera_,&scene_,colorbuffer_);
-        // if(tracer.Begin(info_.tracer_setting_)){
-        //     info_.end_path_tracing=true;
-        //     // write to file
-        // }
     }
 
 

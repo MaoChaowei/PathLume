@@ -7,6 +7,7 @@
 #include"scene_loader.h"
 #include"interface.h"
 #include"sample.h"
+#include"pathtracer.h"
 
 struct TileMessageBlock{
     int cnt=0;
@@ -19,10 +20,10 @@ class Camera;
 class Tile{
 public:
     Tile()=delete;
-    Tile(Film* film,glm::vec2 pnum,glm::vec2 px_offset,glm::vec3 up_lt,std::shared_ptr<ColorBuffer> buffer,const Scene* scene,const RTracingSetting& setting)
-        :film_(film),pixels_num_(pnum),first_pixel_offset_(px_offset),up_lt_pos_(up_lt),shared_buffer_(buffer),scene_(scene),setting_(setting){
-
-        }
+    Tile(Film* film,glm::vec2 pnum,glm::vec2 px_offset,glm::vec3 up_lt,std::shared_ptr<ColorBuffer> buffer,
+        const Scene* scene,std::shared_ptr<const PathTracer>pathtracer,const RTracingSetting& setting)
+        :film_(film),pixels_num_(pnum),first_pixel_offset_(px_offset),up_lt_pos_(up_lt),shared_buffer_(buffer),
+        scene_(scene),tracer_(pathtracer),setting_(setting){}
 
     void render();
     void setPixel(const uint32_t x,const uint32_t y,const glm::vec4& color);
@@ -35,6 +36,7 @@ private:
     const Scene* scene_;
     const RTracingSetting& setting_;
     std::shared_ptr<ColorBuffer> shared_buffer_;
+    std::shared_ptr<const PathTracer> tracer_;
     std::unique_ptr<Sampler> sampler_;
     
     friend Film;
@@ -46,9 +48,13 @@ public:
 
     void initTiles(const RTracingSetting& setting,std::shared_ptr<ColorBuffer> buffer,const Scene* scene){
 
-        tile_num_=setting.tiles_num_;
+        // init shared memory
+        tracer_=std::make_shared<PathTracer>();
         tile_msg_=std::make_shared<TileMessageBlock>();
         tile_msg_->arr_check.resize(buffer->getPixelNum());
+
+        // init tiles
+        tile_num_=setting.tiles_num_;
         assert(buffer->getPixelNum()==resolution_.x*resolution_.y);
 
         // each tile's pixel num
@@ -70,9 +76,10 @@ public:
                 glm::vec2 px_num(px_w,px_h);
                 glm::vec3 pos=up_lt_pos_+float(i)*vec_h+float(j)*vec_w;
                 glm::vec2 px_offset(j*w,i*h);
-                tiles_.emplace_back(std::make_unique<Tile>(this,px_num,px_offset,pos,buffer,scene,setting));
+                tiles_.emplace_back(std::make_unique<Tile>(this,px_num,px_offset,pos,buffer,scene,tracer_,setting));
             }
         }
+
 
         // init sampler
         for(int i=0;i<tiles_.size();++i){
@@ -111,7 +118,6 @@ public:
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         std::cout<<"duration="<<duration.count()/1000.0<<std::endl;
 
-
         
     }
 
@@ -124,11 +130,13 @@ private:
     glm::vec3 deltaY_;
     uint32_t tile_num_;
     std::vector<std::unique_ptr<Tile>> tiles_;
+
     glm::vec3 camera_pos_;
     
     // Critical Resource
-    std::shared_ptr<TileMessageBlock> tile_msg_;
+    std::shared_ptr<TileMessageBlock> tile_msg_;    // use `mx_msg_` to avoid race.
     std::mutex mx_msg_;
+    std::shared_ptr<PathTracer> tracer_;        // read only, thread safe
 
     friend Camera;
     friend Tile;

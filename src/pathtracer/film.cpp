@@ -17,13 +17,15 @@ void Tile::render(){
 
                 Ray ray(origin,direction,startT,endT);
                 // trace the ray and get its color
-                // color+=intergrator->traceRay(ray,scene_)
+                color+=tracer_->traceRay(ray,scene_);
                 
                 // move on to the next image sample.
                 sampler_->nextPixleSample();
             }
+
             // set color to buffer
-            setPixel(i,j,glm::vec4(127.,0,0,1));
+            color=(float)(1.0/setting_.spp_)*color;
+            setPixel(i,j,glm::vec4(color,1.0));
 
         }
     }

@@ -27,21 +27,29 @@ public:
     virtual void printInfo() const=0;
     virtual void clear()=0;
 
-    inline std::vector<Vertex>& getVertices() { return vertices_;}
-    inline const std::vector<Vertex>& getconstVertices() const { return vertices_;}
-    inline std::vector<glm::vec3>& getFaceNorms() { return face_normals_;}
-    inline const std::vector<uint32_t>& getIndices()const {return indices_;}
-    inline const std::vector<std::shared_ptr<Material>>& getMtls()const{ return mtls_; }
-    inline const std::vector<int>& getMtlIdx()const{ return mtlidx_; }
+    std::vector<Vertex>& getVertices() { return vertices_;}
+    const std::vector<Vertex>& getconstVertices() const { return vertices_;}
+    std::vector<glm::vec3>& getFaceNorms() { return face_normals_;}
+    const std::vector<uint32_t>& getIndices()const {return indices_;}
+    const std::vector<std::shared_ptr<Material>>& getMtls()const{ return mtls_; }
+    const std::vector<int>& getMtlIdx()const{ return mtlidx_; }
+    const std::shared_ptr<Material> getFaceMtl(uint32_t face_idx){
+        auto mtl_type_idx=mtlidx_[face_idx];
+        
+        if(mtl_type_idx<0) 
+            return nullptr;
+        else
+            return mtls_[mtl_type_idx];
+    }
     
-    inline std::string getName()const{return name_;}
-    inline PrimitiveType getPrimitiveType()const{ return type_;}
+    std::string getName()const{return name_;}
+    PrimitiveType getPrimitiveType()const{ return type_;}
     unsigned long long getFaceNum()const{return face_num_;}
 
-    inline int getVerticesNum()const{ return vertices_.size(); }
+    int getVerticesNum()const{ return vertices_.size(); }
 
-    inline bool isBackCulling()const{ return do_back_culling_; }
-    inline void setBackCulling(bool flag){do_back_culling_=flag;}
+    bool isBackCulling()const{ return do_back_culling_; }
+    void setBackCulling(bool flag){do_back_culling_=flag;}
     
 
 protected:
@@ -50,7 +58,7 @@ protected:
 
     // all the information of vertices
     std::vector<Vertex> vertices_;  
-    // contains indices to `vertices_`,and every three vertices constitude a face
+    // contains indices to `vertices_`,and every three consecutive vertices/indices constitude a face
     std::vector<uint32_t> indices_;
     // the normal for all faces, only availabel for MESH
     std::vector<glm::vec3> face_normals_;

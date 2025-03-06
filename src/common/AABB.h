@@ -97,13 +97,19 @@ struct AABB3d{
         max.z=std::min(max.z,box.max.z);
     }
 
-    float extent(int axis) const{
+    float length(int axis) const{
         switch(axis){
             case 0: return max.x-min.x;
             case 1: return max.y-min.y;
             case 2: return max.z-min.z;
         }
         return 0;
+    }
+
+    // add some safty distance
+    void enlargeEpsilon(){
+        min-=1e-5;
+        max+=1e-5;
     }
 
     AABB3d transform(const glm::mat4& m){

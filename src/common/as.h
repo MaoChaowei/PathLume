@@ -5,7 +5,20 @@
 #include"softrender/shader.h"
 #include"pathtracer/hitem.h"
 
-class BLAS
+
+class AccelStruct{
+public:
+    AccelStruct():tree_(std::make_unique<std::vector<BVHnode>>()){}
+    virtual ~AccelStruct(){}
+
+    virtual bool traceRayInDetail(const Ray& ray,IntersectRecord& inst)const=0;
+    bool traceRayInAccel(const Ray& ray,int32_t node_idx,IntersectRecord& inst,bool is_tlas)const;
+
+    std::unique_ptr<std::vector<BVHnode>> tree_;                  
+
+};
+
+class BLAS:public AccelStruct
 {
 public:
     BLAS()=delete;
@@ -17,16 +30,16 @@ public:
         tree_=builder.moveNodes();
         primitives_indices_=std::make_unique<std::vector<uint32_t>>(std::move(builder.getPridices()));
     }
+    bool traceRayInDetail(const Ray& ray,IntersectRecord& inst)const override;
 
     
 public:
     std::shared_ptr<ObjectDesc> object_;
-    std::unique_ptr<std::vector<BVHnode>> tree_;                   // nodes_ points to  primitives_indices_
+    //std::unique_ptr<std::vector<BVHnode>> tree_;                    // BVH in model space. node points to  primitives_indices_
     std::unique_ptr<std::vector<uint32_t>> primitives_indices_;     // primitives_indices_ points to object_'s primitive
 };
 
-class PrimitiveHolder: public Hitem{         // because of the neccessity of clipping, each frame updates all the primitives of the instance.
-public:
+struct PrimitiveHolder{         // because of the neccessity of clipping, each frame updates all the primitives of the instance.
     ClipFlag clipflag_;         // 0: accepted; 1: clipped; 2: refused;
     int32_t mtlidx_;            // point to its material in blas_
     int32_t vertex_start_pos_;  // point to vertices_
@@ -38,13 +51,6 @@ public:
         vertex_start_pos_(startpos),
         vertex_num_(num)
     {}
-
-    bool anyHit(const Ray& ray)override{
-        return false;
-    }
-    void rayIntersect(const Ray& ray,IntersectRecord& inst)override{
-
-    }
 };
 
 class ASInstance{
@@ -56,6 +62,7 @@ public:
     void BLASupdateSBox();
 
     void updateScreenBox(int32_t node_idx,std::vector<BVHnode>&blas_tree,std::vector<uint32_t>& primitive_indices);
+
 
 
 public:
@@ -71,10 +78,10 @@ public:
     ShaderType shader_;
 };
 
-class TLAS
+class TLAS: public AccelStruct
 {
 public:
-    TLAS():tree_(std::make_unique<std::vector<BVHnode>>()),tlas_sboxes_(std::make_unique<std::vector<AABB3d>>()){}
+    TLAS():tlas_sboxes_(std::make_unique<std::vector<AABB3d>>()){}
 
     void buildTLAS();
 
@@ -82,11 +89,13 @@ public:
 
     
     void updateScreenBox(int32_t node_idx);
+
+    bool traceRayInDetail(const Ray& ray,IntersectRecord& inst)const override;
     
 
 public:
     std::vector<ASInstance> all_instances_;
-    std::unique_ptr<std::vector<BVHnode>> tree_;
+    // std::unique_ptr<std::vector<BVHnode>> tree_;
 
     std::unique_ptr<std::vector<AABB3d>> tlas_sboxes_;
 

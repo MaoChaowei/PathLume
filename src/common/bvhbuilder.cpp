@@ -59,14 +59,16 @@ int BVHbuilder::buildBVH(uint32_t start,uint32_t end){
     for(int i=start;i<=end;++i){
         current.bbox.expand(priboxes_[pridices_[i]]);
     }
+    current.bbox.enlargeEpsilon();  // enlarge aabb box a little bit to avoid floating-error
+
 
     // leaf?
     if(end-start+1<=leaf_size_)
         return nodeidx;
 
-    int lenx=current.bbox.extent(0);
-    int leny=current.bbox.extent(1);
-    int lenz=current.bbox.extent(2);
+    int lenx=current.bbox.length(0);
+    int leny=current.bbox.length(1);
+    int lenz=current.bbox.length(2);
     int axis=0;
     if(leny>lenx&&leny>lenz) axis=1;
     else if(lenz>lenx&&lenz>leny) axis=2;
