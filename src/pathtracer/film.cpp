@@ -8,9 +8,9 @@ void Tile::render(){
             sampler_->startPixle();
             for(int s=0;s<setting_.spp_;++s){
                 // generate a ray
-                glm::vec2 offset=sampler_->getSample2D();
+                glm::vec2 offset={0.5,0.5}; //sampler_->getSample2D();
                 glm::vec3 origin=film_->camera_pos_;
-                glm::vec3 sample_pos=up_lt_pos_+float(i)*film_->deltaX_+float(j)*film_->deltaY_;
+                glm::vec3 sample_pos=up_lt_pos_+float(i+offset.x)*film_->deltaX_+float(j+offset.y)*film_->deltaY_;
                 glm::vec3 direction=sample_pos-origin;
                 float startT=srender::EPSILON;
                 float endT=srender::MAXFLOAT;

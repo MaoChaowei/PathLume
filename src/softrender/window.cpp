@@ -276,7 +276,7 @@ void Window::showMyImGuiWindow() {
 
         // demo_scene 
         setting.scene_change=false;
-        const std::vector<std::string> demoScenes = {"Bunny_with_wall","Bunnys_mutilights","veach-mis","cornell-box","bathroom2"};
+        const std::vector<std::string> demoScenes = {"hit_test","Bunny_with_wall","Bunnys_mutilights","veach-mis","cornell-box","bathroom2"};
         auto findIdx0=[&setting,&demoScenes](){
             int idx=0;
             while(idx<demoScenes.size()){

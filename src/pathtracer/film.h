@@ -31,7 +31,7 @@ public:
 private:
     glm::vec2 pixels_num_; //{width,height}
     glm::vec2 first_pixel_offset_; // the left_top pixel's index in the whole film.
-    glm::vec3 up_lt_pos_;          // the left_top pixel's world position.
+    glm::vec3 up_lt_pos_;          // the left_top pixel's left top corner's world position.
     Film* film_;
     const Scene* scene_;
     const RTracingSetting& setting_;
@@ -85,6 +85,7 @@ public:
         for(int i=0;i<tiles_.size();++i){
             tiles_[i]->sampler_=std::make_unique<StratifiedSampler>(setting.spp_, i,true);
             tiles_[i]->sampler_->preAddSamples2D(1);    // image samples
+            tiles_[i]->sampler_->preAddSamples1D(1);    // test samples
         }
     }
 

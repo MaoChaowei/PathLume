@@ -7,7 +7,7 @@ void Camera::setCameraPos(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right){
 	position_=pos;
 	front_=glm::normalize(lookat-position_);
 	right_=right;
-	up_=glm::cross(right_,front_);
+	up_=glm::normalize(glm::cross(right_,front_));
 	pitch_ = glm::degrees(asin(front_.y));
 	yaw_   = glm::degrees(atan2(front_.z, front_.x));
 	if (pitch_ > 89.0f)  pitch_ = 89.0f;
@@ -190,7 +190,7 @@ Camera::Camera(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right,float fov,float ra
 	half_near_width_=aspect_ratio_*half_near_height_;
 
 	front_=glm::normalize(lookat-pos);
-	up_=glm::cross(right_,front_);
+	up_=glm::normalize(glm::cross(right_,front_));
 
 	pitch_ = glm::degrees(asin(front_.y));
 	yaw_   = glm::degrees(atan2(front_.z, front_.x));
@@ -212,9 +212,9 @@ std::shared_ptr<Film> Camera::getNewFilm()const{
 	auto film=std::make_shared<Film>();
 	film->resolution_=glm::vec2(this->image_width_,this->image_height_);
 
-	assert(abs(glm::length(this->front_)-1.0)<1e-6);
-	assert(abs(glm::length(this->up_)-1.0)<=1e-6);
-	assert(abs(glm::length(this->right_)-1.0)<=1e-6);
+	assert(abs(glm::length(this->front_)-1.0)<1e-5);
+	assert(abs(glm::length(this->up_)-1.0)<=1e-5);
+	assert(abs(glm::length(this->right_)-1.0)<=1e-5);
 	film->up_lt_pos_=this->position_
 					+this->near_flat_z_*this->front_
 					+this->half_near_height_*this->up_

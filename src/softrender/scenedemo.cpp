@@ -15,8 +15,20 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
 #endif
     scene_.clearScene();
     this->camera_.setMovement(0.05,0.1);
-
-    if (name == "Bunny_with_wall")
+    if(name=="hit_test"){
+        setCamera({0,0,0}, {0, 0, -1}, {1, 0, 0},60,1024/800,1024,1,500);
+        {
+            {
+                glm::vec3 model_position{0, 100, -100};
+                glm::mat4 translation = glm::translate(glm::mat4(1.0f), model_position);
+                glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians(60.f), glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f))); // 60
+                glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(120));
+                glm::mat4 model_matrix = translation * rotate * scale;
+                addObjInstance(std::string("assets/model/Brickwall/brickwall.obj"), model_matrix, shader, false, false);
+            }
+        }
+    }
+    else if (name == "Bunny_with_wall")
     {
         setCamera({-30, 20, -100}, {0, 0, -200}, {1, 0, 0},60,1024/800,1024,1,500);
         {
@@ -159,9 +171,12 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
             <up x="0.0" y="1.0" z="0.0"/> 
         </camera>
         */
-        glm::vec3 eye(278.0, 273.0, -800.0);
+        glm::vec3 eye(278.0, 273.0, -799.5);
         glm::vec3 lookat(278.0, 273.0, -799.0);
-        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),39.3077,1024.0/1024,1024,1.0,2000.0);
+        glm::vec3 front=lookat-eye;
+        eye={161.0, 273.0,-500};
+        lookat=eye+front;
+        setCamera(eye,lookat, glm::cross(front,{0,1,0}),39.3077,1024.0/1024,1024,1.0,2000.0);
         {
             glm::mat4 model_matrix = glm::mat4(1.0f);
             addObjInstance(std::string("assets/model/cornell-box/cornell-box.obj"), model_matrix, shader, false);

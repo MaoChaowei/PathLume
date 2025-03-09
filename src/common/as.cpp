@@ -32,6 +32,13 @@ bool AccelStruct::traceRayInAccel(const Ray& ray,int32_t node_idx,IntersectRecor
 
     bool flag_lt=traceRayInAccel(ray,left,left_hit,is_tlas);
     bool flag_rt=traceRayInAccel(ray,right,right_hit,is_tlas);
+    if(is_tlas){
+        left_hit.as_node_.tlas_node_idx_=node_idx;
+        right_hit.as_node_.tlas_node_idx_=node_idx;
+    }else{
+        left_hit.as_node_.blas_node_idx_=node_idx;
+        right_hit.as_node_.blas_node_idx_=node_idx;
+    }
 
     if(flag_lt||flag_rt){
         inst=left_hit.t_<right_hit.t_?left_hit:right_hit;
@@ -53,6 +60,7 @@ bool BLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
     int id=inst.as_node_.blas_node_idx_;
     BVHnode& node=tree_->at(id);
     auto& vertices=object_->getVertices();
+    auto& indices=object_->getIndices();
 
     // set t_ to maxfloat for recording the nearest t later.
     inst.t_=srender::MAXFLOAT;
@@ -63,7 +71,7 @@ bool BLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
         std::vector<const Vertex*> temp;
         auto idx=primitives_indices_->at(node.prmitive_start+i);
         for(int j=0;j<3;++j){
-            temp.push_back(&vertices[idx*3+j]);
+            temp.push_back(&vertices[indices[idx*3+j]]);
         }
         Htriangle tri(temp[0],temp[1],temp[2],object_->getFaceMtl(idx));
 
@@ -81,8 +89,8 @@ bool BLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
  * 
  */
 bool TLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
-    
-    auto& instance=all_instances_[inst.as_node_.tlas_node_idx_];
+    auto& node=tree_->at(inst.as_node_.tlas_node_idx_);
+    auto& instance=all_instances_[node.prmitive_start];
     // transform ray into model's space
     auto mat_inv=glm::inverse(instance.modle_);
     auto morigin=mat_inv*glm::vec4(ray.origin_,1.0);
@@ -91,9 +99,10 @@ bool TLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
 
     if(instance.blas_->traceRayInAccel(mray,0,inst,false)){
         // transform intersect record back to world space.
+        // Todo: inst.t_ should be scaled when mdir has been scaled before.
         inst.pos_=instance.modle_*glm::vec4(inst.pos_,1.0);
-        inst.wo_=instance.modle_*glm::vec4(inst.wo_,0.0);
-        inst.normal_=glm::transpose(mat_inv)*glm::vec4(inst.normal_,0.0);
+        inst.wo_=glm::normalize(instance.modle_*glm::vec4(inst.wo_,0.0));
+        inst.normal_=glm::normalize(glm::vec3(glm::transpose(mat_inv)*glm::vec4(inst.normal_,0.0)));
         
         return true;
     }

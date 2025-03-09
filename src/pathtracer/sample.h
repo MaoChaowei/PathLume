@@ -13,7 +13,7 @@ public:
     /**
      * @brief inform sampler the dimension of the array of sample
      */
-    uint32_t preAddSample1D(uint32_t dim_num){
+    uint32_t preAddSamples1D(uint32_t dim_num){
         for(int i=0;i<dim_num;++i){
             samples1D_.push_back(std::vector<float>(spp_,0));
         }
@@ -51,7 +51,7 @@ public:
         if(cur_sample_idx_>=spp_)   
             return false;
 
-        cur_sample_idx_=0;
+        ++cur_sample_idx_;
         cur_1Ddim_=cur_2Ddim_=0;
 
         return true;

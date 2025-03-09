@@ -12,12 +12,11 @@
 void Shader::vertexShader(Vertex& v ){
 
     v.c_pos_=(*mvp_)*glm::vec4(v.pos_,1.0f);
+    v.w_pos_=(*model_mat_)*glm::vec4(v.pos_,1.0f);      
+    v.w_norm_=glm::normalize( glm::vec3((*normal_mat_)*glm::vec4(v.norm_,0)));
 
     if(v.c_pos_.w>1e-6 && INSIDE(v.c_pos_.x,v.c_pos_.y,v.c_pos_.z,v.c_pos_.w)){
-        v.discard=false;
-        // record word postion and normal to shade color.
-        v.w_pos_=(*model_mat_)*glm::vec4(v.pos_,1.0f);      
-        v.w_norm_=(*normal_mat_)*glm::vec4(v.norm_,0);   
+        v.discard=false;  
     }
     else{   
         // need to be clipped

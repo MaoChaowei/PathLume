@@ -12,9 +12,11 @@ struct IntersectRecord{
     glm::vec3 wo_;      // revered incident ray direction
     std::shared_ptr<const Material> material_;
     struct{
-        uint32_t tlas_node_idx_;
-        uint32_t blas_node_idx_;
+        int32_t tlas_node_idx_;
+        int32_t blas_node_idx_;
     }as_node_;
+
+    IntersectRecord():pos_(0.0),t_(srender::MAXFLOAT),normal_(0.0),wo_(0.0),material_(nullptr),as_node_({-1,-1}){}
 
     IntersectRecord& operator=(const IntersectRecord& inst){
         if(this==&inst)

@@ -35,7 +35,9 @@ public:
             pixel = std::clamp(pixel, 0, 255); // 确保范围正确
             return static_cast<uint8_t>(pixel);
         };
-        return glm::vec3(distance_to_color(inst.t_,1.0));
+        // return glm::vec3(distance_to_color(inst.t_,1.0));
+        glm::vec3 normal_vis = (inst.normal_ * 0.5f + 0.5f) * 255.0f;
+        return normal_vis;
     }
 
 
