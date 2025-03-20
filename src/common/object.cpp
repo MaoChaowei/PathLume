@@ -86,9 +86,11 @@ void Mesh::initObject(const tinyobj::ObjReader& reader,std::string filepath,bool
     for(auto& m:mtls){
         std::shared_ptr<Material> mptr=std::make_shared<Material>();
         mptr->setName(m.name);
-        mptr->setADS(glm::vec3(m.ambient[0],m.ambient[1],m.ambient[2]),
-                     glm::vec3(m.diffuse[0],m.diffuse[1],m.diffuse[2]),
-                     glm::vec3(m.specular[0],m.specular[1],m.specular[2]));
+        mptr->setProperties(glm::vec3(m.ambient[0],m.ambient[1],m.ambient[2]),
+                            glm::vec3(m.diffuse[0],m.diffuse[1],m.diffuse[2]),
+                            glm::vec3(m.specular[0],m.specular[1],m.specular[2]),
+                            glm::vec3(m.transmittance[0],m.transmittance[1],m.transmittance[2]),
+                            m.shininess,m.ior);
 
         if(m.ambient_texname.size())    mptr->setTexture(MltMember::Ambient,prefix+m.ambient_texname);
         if(m.diffuse_texname.size())    mptr->setTexture(MltMember::Diffuse,prefix+m.diffuse_texname);
@@ -105,7 +107,7 @@ void Mesh::initObject(const tinyobj::ObjReader& reader,std::string filepath,bool
         glm::vec3 c=vertices_[indices_[i*3+2]].pos_;
         glm::vec3 cb=b-c;
         glm::vec3 ba=a-b;
-        glm::vec3 nn=glm::vec3(sign)*glm::cross(ba,cb);
+        glm::vec3 nn=glm::normalize(glm::vec3(sign)*glm::cross(ba,cb)); // not quite sure about should I normalize here or not.
 
         face_normals_.push_back(nn);
         if(!has_normal_){
@@ -188,10 +190,10 @@ void ObjLoader::readObjFile(std::string inputfile){
 
         if (!reader_.Error().empty()) {
             std::cerr << "Obj-Loader: " << reader_.Error();
-            std::cout<<"try to search ../assets/model/"<<std::endl;
+            std::cout<<"Try to search from the upper level directory..."<<std::endl;
         }
 
-        inputfile = "../assets/model/cornell_box.obj";
+        inputfile = "../"+inputfile;
         if (!reader_.ParseFromFile(inputfile)) {
             if (!reader_.Error().empty()) {
                 std::cerr << "Obj-Loader: " << reader_.Error();

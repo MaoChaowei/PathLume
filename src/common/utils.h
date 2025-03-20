@@ -2,6 +2,7 @@
 #include <random>
 #include"common_include.h"
 #include"AABB.h"
+#include <fstream>
 
 
 // some small functions
@@ -26,6 +27,36 @@ void lowerVec3(glm::vec3& v);
 void upperVec3(glm::vec3& v);
 
 bool isEqual(float a, float b, float eps=srender::EPSILON);
+
+
+std::string getCurrentTime();
+
+/**
+ * @brief DEBUG to file
+ */
+template<typename... Args>
+void DebugLog(const std::string& format, Args&&... args)
+{
+    static std::ofstream g_logFile("debug.log", std::ios::out | std::ios::app);
+
+    size_t size = snprintf(nullptr, 0, format.c_str(), args...) + 1;
+    std::unique_ptr<char[]> buf(new char[size]);
+    snprintf(buf.get(), size, format.c_str(), args...);
+
+    std::string output = buf.get();
+
+    // std::cout << output << std::endl;
+
+    if (g_logFile.is_open())
+    {
+        g_logFile << output << std::endl;
+        g_logFile.flush();
+    }
+}
+
+// inline float getLuminance(const glm::vec3 radiance_rgb){
+//     return (0.2126*radiance_rgb.r + 0.7152*radiance_rgb.g + 0.0722*radiance_rgb.b);
+// }
 
 }
 

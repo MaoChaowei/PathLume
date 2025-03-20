@@ -2,7 +2,7 @@
 
 Render::Render() : camera_(), colorbuffer_(std::make_shared<ColorBuffer>(camera_.getImageWidth(), camera_.getImageHeight())),
                    zbuffer_(std::make_shared<DepthBuffer>(camera_.getImageWidth(), camera_.getImageHeight())),
-                   info_(), setting_(info_.raster_setting_), timer_(info_.timer_), profile_(info_.profile_)
+                   info_()
 {
 
     box2d_.min = {0, 0};
@@ -31,8 +31,8 @@ void Render::pipelineInit()
     initRenderIoInfo();
 
     // 0. load scene and camera setting
-    loadDemoScene(setting_.scene_filename, setting_.shader_type);
-    setBVHLeafSize(setting_.bvh_leaf_num);
+    loadDemoScene(info_.raster_setting_.scene_filename, info_.raster_setting_.shader_type);
+    setBVHLeafSize(info_.raster_setting_.bvh_leaf_num);
     scene_.buildTLAS();
 
     // // 1. init transformation
@@ -40,13 +40,13 @@ void Render::pipelineInit()
 
     // 2. init shader
     sdptr_ = std::make_shared<Shader>();
-    sdptr_->bindTimer(&timer_);
+    sdptr_->bindTimer(&info_.rasterize_timer_);
 
     // 3. init rastertizer
     tri_scanliner_ = std::make_shared<ScanLine::PerTriangleScanLiner>(box2d_, colorbuffer_, zbuffer_, sdptr_);
 
-    if (setting_.rasterize_type == RasterizeType::Easy_hzb ||
-        setting_.rasterize_type == RasterizeType::Bvh_hzb)
+    if (info_.raster_setting_.rasterize_type == RasterizeType::Easy_hzb ||
+        info_.raster_setting_.rasterize_type == RasterizeType::Bvh_hzb)
     {
         hzb_ = std::make_shared<HZbuffer>(camera_.getImageWidth(), camera_.getImageHeight());
     }
@@ -104,7 +104,7 @@ void Render::drawLine(glm::vec2 t1, glm::vec2 t2)
 // go through all the pixels inside the AABB, that means I didn't use coherence here
 void Render::drawTriangleNaive()
 {
-    ++profile_.shaded_face_num_;
+    ++info_.profile_.shaded_face_num_;
 
     glm::vec3 t[3];
     for (int i = 0; i < 3; ++i)
@@ -143,7 +143,7 @@ void Render::drawTriangleNaive()
 
 void Render::drawTriangleHZB()
 {
-    ++profile_.shaded_face_num_;
+    ++info_.profile_.shaded_face_num_;
     glm::vec3 t[3];
     for (int i = 0; i < 3; ++i)
         t[i] = sdptr_->getScreenPos(i);
@@ -165,7 +165,7 @@ void Render::drawTriangleHZB()
     {
         if (hzb_->rapidRefuseBox(aabb))
         {
-            --profile_.shaded_face_num_;
+            --info_.profile_.shaded_face_num_;
             return;
         }
 
@@ -187,7 +187,7 @@ void Render::drawTriangleHZB()
 
 void Render::drawTriangleScanLine()
 {
-    ++profile_.shaded_face_num_;
+    ++info_.profile_.shaded_face_num_;
 
     if (ShaderType::Frame == sdptr_->getType())
     {
@@ -225,26 +225,26 @@ void Render::pipelineBegin()
         return;
     }
     // update the scene or render accorrding to the setting(modified by ImGui)
-    if (setting_.scene_change == true)
+    if (info_.raster_setting_.scene_change == true)
     {
-        loadDemoScene(setting_.scene_filename, setting_.shader_type);
+        loadDemoScene(info_.raster_setting_.scene_filename, info_.raster_setting_.shader_type);
         scene_.buildTLAS();
     }
-    if (setting_.shader_change == true)
+    if (info_.raster_setting_.shader_change == true)
     {
         for (auto &inst : scene_.getAllInstances())
         {
             if (inst.shader_ != ShaderType::Light)
-                inst.shader_ = setting_.shader_type;
+                inst.shader_ = info_.raster_setting_.shader_type;
         }
     }
-    if (setting_.rasterize_change == true)
+    if (info_.raster_setting_.rasterize_change == true)
     {
-        timer_.clear(); // each rasterize technique has different stages
+        info_.rasterize_timer_.clear(); // each rasterize technique has different stages
     }
-    if (setting_.leaf_num_change == true)
+    if (info_.raster_setting_.leaf_num_change == true)
     {
-        setBVHLeafSize(setting_.bvh_leaf_num);
+        setBVHLeafSize(info_.raster_setting_.bvh_leaf_num);
         scene_.rebuildBLAS();
     }
     // update the camera if moved
@@ -257,7 +257,7 @@ void Render::pipelineBegin()
     sdptr_->setFrustum(camera_.getNear(), camera_.getFar());
 
     // The pipeline happens here
-    if (setting_.rasterize_type == RasterizeType::Bvh_hzb)
+    if (info_.raster_setting_.rasterize_type == RasterizeType::Bvh_hzb)
     {
         pipelineHZB_BVH();
     }
@@ -267,11 +267,11 @@ void Render::pipelineBegin()
     }
 
     // show bvh structure
-    if (setting_.show_tlas)
+    if (info_.raster_setting_.show_tlas)
     {
         showTLAS();
     }
-    else if (setting_.show_blas)
+    else if (info_.raster_setting_.show_blas)
     {
         auto &asinstances = scene_.getAllInstances();
         for (auto &ins : asinstances)
@@ -279,7 +279,8 @@ void Render::pipelineBegin()
     }
 
     // calculate hzb_culled_face_num_
-    profile_.hzb_culled_face_num_ = profile_.total_face_num_ - profile_.shaded_face_num_ - profile_.back_culled_face_num_ - profile_.clipped_face_num_;
+    info_.profile_.hzb_culled_face_num_ = info_.profile_.total_face_num_ - info_.profile_.shaded_face_num_ 
+    - info_.profile_.back_culled_face_num_ - info_.profile_.clipped_face_num_;
 
     // this is for cmd user:
     // if(setting_.profile_report)
@@ -326,23 +327,23 @@ void Render::pipelinePerInstance()
 {
 
 #ifdef TIME_RECORD
-    timer_.start("110.Geometry Phase");
+    info_.rasterize_timer_.start("110.Geometry Phase");
 #endif
 
     pipelineGeometryPhase();
 
 #ifdef TIME_RECORD
-    timer_.stop("110.Geometry Phase");
+    info_.rasterize_timer_.stop("110.Geometry Phase");
 #endif
 
 #ifdef TIME_RECORD
-    timer_.start("120.Rasterize Phase(Per-Instance mode)");
+    info_.rasterize_timer_.start("120.Rasterize Phase(Per-Instance mode)");
 #endif
 
     pipelineRasterizePhasePerInstance();
 
 #ifdef TIME_RECORD
-    timer_.stop("120.Rasterize Phase(Per-Instance mode)");
+    info_.rasterize_timer_.stop("120.Rasterize Phase(Per-Instance mode)");
 #endif
 }
 
@@ -392,11 +393,11 @@ void Render::pipelineRasterizePhasePerInstance()
 
             // render
             assert(otype == PrimitiveType::MESH);
-            if (setting_.rasterize_type == RasterizeType::Easy_hzb)
+            if (info_.raster_setting_.rasterize_type == RasterizeType::Easy_hzb)
                 drawTriangleHZB();
-            else if (setting_.rasterize_type == RasterizeType::Scan_convert)
+            else if (info_.raster_setting_.rasterize_type == RasterizeType::Scan_convert)
                 drawTriangleScanLine();
-            else if (setting_.rasterize_type == RasterizeType::Naive)
+            else if (info_.raster_setting_.rasterize_type == RasterizeType::Naive)
                 drawTriangleNaive();
             else
             {
@@ -447,23 +448,23 @@ void Render::pipelineHZB_BVH()
 {
 
 #ifdef TIME_RECORD
-    timer_.start("110.Geometry Phase");
+    info_.rasterize_timer_.start("110.Geometry Phase");
 #endif
 
     pipelineGeometryPhase();
 
 #ifdef TIME_RECORD
-    timer_.stop("110.Geometry Phase");
+    info_.rasterize_timer_.stop("110.Geometry Phase");
 #endif
 
 #ifdef TIME_RECORD
-    timer_.start("120.Rasterize Phase(HZB_BVH mode)");
+    info_.rasterize_timer_.start("120.Rasterize Phase(HZB_BVH mode)");
 #endif
 
     pipelineRasterizePhaseHZB_BVH();
 
 #ifdef TIME_RECORD
-    timer_.stop("120.Rasterize Phase(HZB_BVH mode)");
+    info_.rasterize_timer_.stop("120.Rasterize Phase(HZB_BVH mode)");
 #endif
 }
 
@@ -471,7 +472,7 @@ void Render::pipelineRasterizePhaseHZB_BVH()
 {
 
 #ifdef TIME_RECORD
-    timer_.start("121.update SBox");
+    info_.rasterize_timer_.start("121.update SBox");
 #endif
     // update bvh in screenspace
     auto &tlas = scene_.getTLAS();
@@ -480,17 +481,17 @@ void Render::pipelineRasterizePhaseHZB_BVH()
     tlas.TLASupdateSBox();
 
 #ifdef TIME_RECORD
-    timer_.stop("121.update SBox");
+    info_.rasterize_timer_.stop("121.update SBox");
 #endif
 
 #ifdef TIME_RECORD
-    timer_.start("122.DfsTlas_BVHwithHZB()");
+    info_.rasterize_timer_.start("122.DfsTlas_BVHwithHZB()");
 #endif
     auto &tlas_sboxes = *tlas.tlas_sboxes_;
     DfsTlas_BVHwithHZB(tlas_tree, tlas_sboxes, scene_.getAllInstances(), 0);
 
 #ifdef TIME_RECORD
-    timer_.stop("122.DfsTlas_BVHwithHZB()");
+    info_.rasterize_timer_.stop("122.DfsTlas_BVHwithHZB()");
 #endif
 }
 
@@ -714,7 +715,7 @@ void Render::traverseBVHandDraw(const std::vector<BVHnode> &tree, uint32_t nodeI
     }
     // draw 12 lines
     glm::vec4 color = is_TLAS ? glm::vec4(255.0) : glm::vec4(0.0, 100.0, 100.0, 1.0);
-    if (setting_.show_tlas && is_TLAS || setting_.show_blas && !is_TLAS)
+    if (info_.raster_setting_.show_tlas && is_TLAS || info_.raster_setting_.show_blas && !is_TLAS)
     {
         for (int i = 0; i < 4; ++i)
         {
@@ -730,7 +731,7 @@ void Render::traverseBVHandDraw(const std::vector<BVHnode> &tree, uint32_t nodeI
     // dive into blas if possible and required
     if (is_TLAS && node.left == -1 && node.right == -1)
     {
-        if (setting_.show_blas)
+        if (info_.raster_setting_.show_blas)
         {
             auto &tlas = scene_.getTLAS();
             uint32_t idx = node.prmitive_start;
@@ -777,7 +778,7 @@ void Render::drawLine3d(glm::vec3 t1, glm::vec3 t2, const glm::vec4 &color)
     int error2 = 0;
     int y = t1.y;
 
-    auto &depthbuf = (setting_.rasterize_type == RasterizeType::Easy_hzb || setting_.rasterize_type == RasterizeType::Bvh_hzb)
+    auto &depthbuf = (info_.raster_setting_.rasterize_type == RasterizeType::Easy_hzb || info_.raster_setting_.rasterize_type == RasterizeType::Bvh_hzb)
                          ? hzb_->getFinesetZbuffer()
                          : *zbuffer_;
 
@@ -871,11 +872,11 @@ void Render::printProfile()
 {
 
     std::cout << "-------------- face counter  -----------------\n";
-    std::cout << "total         =" << profile_.total_face_num_ << std::endl;
-    std::cout << "shaded        =" << profile_.shaded_face_num_ << std::endl;
-    std::cout << "back_culled   =" << profile_.back_culled_face_num_ << std::endl;
-    std::cout << "clipped       =" << profile_.clipped_face_num_ << std::endl;
-    std::cout << "hzb_culled    =" << profile_.hzb_culled_face_num_ << std::endl;
+    std::cout << "total         =" << info_.profile_.total_face_num_ << std::endl;
+    std::cout << "shaded        =" << info_.profile_.shaded_face_num_ << std::endl;
+    std::cout << "back_culled   =" << info_.profile_.back_culled_face_num_ << std::endl;
+    std::cout << "clipped       =" << info_.profile_.clipped_face_num_ << std::endl;
+    std::cout << "hzb_culled    =" << info_.profile_.hzb_culled_face_num_ << std::endl;
 }
 
 void Render::initRenderIoInfo()
@@ -884,19 +885,19 @@ void Render::initRenderIoInfo()
     info_.profile_report = true;
 
     // rasterizer
-    setting_.scene_filename = "hit_test";// cornell-box // veach-mis
-    setting_.bvh_leaf_num = 12;
-    setting_.back_culling = true;
-    setting_.earlyz_test = true;
-    setting_.rasterize_type = RasterizeType::Naive;
-    setting_.show_tlas = false;
-    setting_.show_blas = false;
-    setting_.shader_type = ShaderType::Normal;
+    info_.raster_setting_.scene_filename = "veach-mis";// cornell-box // veach-mis
+    info_.raster_setting_.bvh_leaf_num = 12;
+    info_.raster_setting_.back_culling = true;
+    info_.raster_setting_.earlyz_test = true;
+    info_.raster_setting_.rasterize_type = RasterizeType::Naive;
+    info_.raster_setting_.show_tlas = false;
+    info_.raster_setting_.show_blas = false;
+    info_.raster_setting_.shader_type = ShaderType::Depth;
 
     // path tracer
-    info_.tracer_setting_.filename_=info_.raster_setting_.scene_filename+"_res.png";
+    info_.tracer_setting_.filename_=info_.raster_setting_.scene_filename;
     info_.tracer_setting_.filepath_="./";
-    info_.tracer_setting_.max_depth_=16;
+    info_.tracer_setting_.max_depth_=2;
     info_.tracer_setting_.spp_=1;
     info_.tracer_setting_.tiles_num_=1;
 }
@@ -924,13 +925,13 @@ void Render::cleanFrame()
 {
     colorbuffer_->clear();
     zbuffer_->clear();
-    if (setting_.rasterize_type == RasterizeType::Easy_hzb || setting_.rasterize_type == RasterizeType::Bvh_hzb)
+    if (info_.raster_setting_.rasterize_type == RasterizeType::Easy_hzb || info_.raster_setting_.rasterize_type == RasterizeType::Bvh_hzb)
         hzb_->clear();
 
     if (info_.profile_report)
     {
-        profile_.clear();
+        info_.profile_.clear();
     }
 
-    timer_.reset();
+    info_.rasterize_timer_.reset();
 }

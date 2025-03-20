@@ -1,10 +1,34 @@
 #include"window.h"
 #include"softrender/render.h"
+#include<stdexcept>
+
+unsigned int window_width_,window_height_;
+unsigned int vp_width_ , vp_height_;
+unsigned int control_width_,control_height_;
 
 /* 一些回调函数  */ 
+/**
+ * @brief glfwSetWindowSize will call-back this function after `window_size_callback`
+ * 
+ * @param window 
+ * @param width : width of window
+ * @param height : height of window 
+ */
 void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, IMGUI_HEIGHT, width, height);
+    // NOTHING TO DO
 } 
+
+/**
+ * @brief glfwSetWindowSize will call-back this function
+ * 
+ * @param window 
+ * @param width : width of window
+ * @param height : height of window 
+ */
+void Window::window_size_callback(GLFWwindow* window, int width, int height) {
+    window_height_=height;
+    window_width_=width;
+}
 
 void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if(io->WantCaptureKeyboard) return; // dear imgui wants to use this inputs.
@@ -53,16 +77,35 @@ void Window::mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 // 初始化glfw窗口
-int Window::init(const char* name,int width,int height)
+int Window::init(const char* name,float width_factor,float height_factor)
 {
+    // Initialization
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    // 不可缩放
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); 
 
-	window_ = glfwCreateWindow(width, height, name, NULL, NULL);
+    // get primary monitor's size
+     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    if (!primaryMonitor) {
+        std::cerr << "Failed to get primary monitor!" << std::endl;
+        glfwTerminate();
+        throw std::runtime_error("Window::init->get primary monitor's size->false... \n");
+        return -1;
+    }
+    const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    int screenWidth = mode->width;
+    int screenHeight = mode->height;
+    std::cout << "Your screen resolution : " << screenWidth << "x" << screenHeight << std::endl;
+
+    // create a window
+    window_width_=screenWidth*width_factor;
+    window_height_=screenHeight*height_factor;
+
+    // 不可缩放
+    // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); 
+
+	window_ = glfwCreateWindow(window_width_, window_height_, name, NULL, NULL);
 	if (!window_) {
 		std::cout << "fail to create the window" << std::endl;
 		glfwTerminate();
@@ -77,14 +120,19 @@ int Window::init(const char* name,int width,int height)
 		return -1;
 	}
 
-    // 设置用户指针，将 `this` 绑定到 `GLFWwindow`
-    glfwSetWindowUserPointer(window_, this);
+    glfwSetWindowUserPointer(window_, this);// 设置用户指针，将 `this` 绑定到 `GLFWwindow`
 
-	glViewport(0, IMGUI_HEIGHT, width, height-IMGUI_HEIGHT);
-    vp_width_=width;
-    vp_height_=height;
+    // set size for viewport
+    control_height_=window_height_*0.3;
+    control_width_=window_width_;
 
+    vp_width_=window_width_;
+    vp_height_=window_height_-control_height_;
+	glViewport(0, window_height_-vp_height_, vp_width_, vp_height_);
+
+    // bind call back functions
     glfwSetFramebufferSizeCallback(window_, framebuffer_size_callback);
+    glfwSetWindowSizeCallback(window_, window_size_callback);
     glfwSetKeyCallback(window_, keyCallback);  
     glfwSetCursorPosCallback(window_, mouseCallback);
 
@@ -98,13 +146,28 @@ int Window::init(const char* name,int width,int height)
 }
 
 void Window::resizeViewport(int width,int height){
-    int win_width, win_height;
-    glfwGetWindowSize(window_, &win_width, &win_height);
 
-    glViewport((win_width-width)/2.0, (win_height-height-IMGUI_HEIGHT)/2.0+IMGUI_HEIGHT, width, height);
-    
     vp_width_=width;
     vp_height_=height;
+
+    // Ensure the window itself is large enough
+    bool larger_window=false;
+    if(vp_width_>window_width_){
+        window_width_=vp_width_;
+        larger_window=true;
+    }
+    if(vp_height_>window_height_){
+        window_height_=vp_height_;
+        larger_window=true;
+    }
+    if(larger_window){
+        glfwSetWindowSize(window_,window_width_,window_height_);
+    }
+    
+    // update Viewport here
+    int vp_ltbt_=(window_height_-vp_height_)>control_height_?(window_height_-vp_height_+control_height_)*0.5:(window_height_-vp_height_);
+    glViewport((window_width_-vp_width_)/2.0, vp_ltbt_, vp_width_, vp_height_);
+
 }
 
 // 初始化着色器
@@ -238,19 +301,20 @@ void Window::newImGuiFrame(){
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    showMyImGuiWindow();
+
+    ImGuiSoftRenderWindow();
+    ImGuiPathTracerWindow();
 
 }
 
-void Window::showMyImGuiWindow() {
+
+void Window::ImGuiSoftRenderWindow() {
     RasterSetting &setting = info_->raster_setting_;
     static bool first_load=true;
 
     if(first_load){
-        int width, height;
-        glfwGetWindowSize(window_, &width, &height);
-        ImGui::SetNextWindowPos(ImVec2(0, height-IMGUI_HEIGHT)); 
-        ImGui::SetNextWindowSize(ImVec2(width/3.0, IMGUI_HEIGHT)); 
+        ImGui::SetNextWindowPos(ImVec2(0, window_height_-control_height_)); 
+        ImGui::SetNextWindowSize(ImVec2(window_width_/4.0, control_height_)); 
         first_load=false;
     }
 
@@ -379,67 +443,6 @@ void Window::showMyImGuiWindow() {
 
         if (info_->begin_path_tracing)
             ImGui::EndDisabled();
-        
-        ImGui::Dummy(ImVec2(0.0f, 10.0f));
-        if(ImGui::CollapsingHeader("Path Tracing Setting")){
-            if (info_->begin_path_tracing)
-                ImGui::BeginDisabled();
-
-            ImGui::Text("Max Depth ");
-            ImGui::SameLine();
-            ImGui::SliderInt("##Max Depth ", (int*)&info_->tracer_setting_.max_depth_, 1, 500);
-            ImGui::Text("Tiles Size(n*n)  ");
-            ImGui::SameLine();
-            ImGui::SliderInt("##Tiles Size(n*n)  ", (int*)&info_->tracer_setting_.tiles_num_, 1, 8);
-            ImGui::Text("Sample per Pixel ");
-            ImGui::SameLine();
-            ImGui::SliderInt("##Sample per Pixel ", (int*)&info_->tracer_setting_.spp_, 1,4000);
-
-            char input[256];
-            strcpy(input,info_->tracer_setting_.filepath_.c_str());
-            ImGui::Text("File Path ");
-            ImGui::SameLine();
-            if(ImGui::InputText("##File Path ", input,sizeof(input))){
-                info_->tracer_setting_.filepath_=input;
-                input[0]='\0';
-            }
-            strcpy(input,info_->tracer_setting_.filename_.c_str());
-            ImGui::Text("File Name ");
-            ImGui::SameLine();
-            if(ImGui::InputText("##File Name ", input,sizeof(input))){
-                info_->tracer_setting_.filename_=input;
-                input[0]='\0';
-            }
-
-            if (info_->begin_path_tracing)
-                ImGui::EndDisabled();
-
-
-            ImGui::Checkbox("Begin Path tracing", &info_->begin_path_tracing);
-
-            if(info_->begin_path_tracing){
-                if(!info_->end_path_tracing)
-                    ImGui::BeginDisabled();
-                 
-                bool reset=false;
-                if(ImGui::Button("confirmation")){
-                    // TODO: export file
-                    std::cout<<"TODO: export file\n";
-                    reset=true; // reset all flags about path tracing
-                }
-
-                if (!info_->end_path_tracing)
-                    ImGui::EndDisabled();
-
-                if(reset){
-                    info_->begin_path_tracing=false;
-                    info_->end_path_tracing=false;
-                }
-                
-            }
-            // TODO: file path check and warning.
-
-        }
 
     
     }
@@ -447,13 +450,82 @@ void Window::showMyImGuiWindow() {
 
 }
 
+void Window::ImGuiPathTracerWindow(){
+    static bool first_load=true;
+    if(first_load){
+        ImGui::SetNextWindowPos(ImVec2(window_width_/4.0, window_height_-control_height_)); 
+        ImGui::SetNextWindowSize(ImVec2(window_width_/4.0, control_height_)); 
+        first_load=false;
+    }
+
+    ImGui::Dummy(ImVec2(0.0f, 10.0f));
+    if(ImGui::Begin("Path Tracing Setting")){
+        if (info_->begin_path_tracing)
+            ImGui::BeginDisabled();
+
+        ImGui::Text("Max Depth ");
+        ImGui::SameLine();
+        ImGui::SliderInt("##Max Depth ", (int*)&info_->tracer_setting_.max_depth_, 0, 50);
+        ImGui::Text("Tiles Size(n*n)  ");
+        ImGui::SameLine();
+        ImGui::SliderInt("##Tiles Size(n*n)  ", (int*)&info_->tracer_setting_.tiles_num_, 1, 16);
+        ImGui::Text("Sample per Pixel ");
+        ImGui::SameLine();
+        ImGui::SliderInt("##Sample per Pixel ", (int*)&info_->tracer_setting_.spp_, 1,400);
+
+        char input[256];
+        strcpy(input,info_->tracer_setting_.filepath_.c_str());
+        ImGui::Text("File Path ");
+        ImGui::SameLine();
+        if(ImGui::InputText("##File Path ", input,sizeof(input))){
+            info_->tracer_setting_.filepath_=input;
+            input[0]='\0';
+        }
+        strcpy(input,info_->tracer_setting_.filename_.c_str());
+        ImGui::Text("File Name ");
+        ImGui::SameLine();
+        if(ImGui::InputText("##File Name ", input,sizeof(input))){
+            info_->tracer_setting_.filename_=input;
+            input[0]='\0';
+        }
+
+        if (info_->begin_path_tracing)
+            ImGui::EndDisabled();
+
+
+        ImGui::Checkbox("Begin Path tracing", &info_->begin_path_tracing);
+
+        if(info_->begin_path_tracing){
+            if(!info_->end_path_tracing)
+                ImGui::BeginDisabled();
+             
+            bool reset=false;
+            if(ImGui::Button("confirmation")){
+                // TODO: export file
+                std::cout<<"TODO: export file\n";
+                reset=true; // reset all flags about path tracing
+            }
+
+            if (!info_->end_path_tracing)
+                ImGui::EndDisabled();
+
+            if(reset){
+                info_->begin_path_tracing=false;
+                info_->end_path_tracing=false;
+            }
+            
+        }
+        // TODO: file path check and warning.
+
+    }
+    ImGui::End();
+}
+
 void Window::showProfileReport(){ 
     static bool first_load=true;
     if(first_load){
-        int width, height;
-        glfwGetWindowSize(window_, &width, &height);
-        ImGui::SetNextWindowPos(ImVec2(width/3.0, height-IMGUI_HEIGHT)); 
-        ImGui::SetNextWindowSize(ImVec2(width*2.0/3, IMGUI_HEIGHT)); 
+        ImGui::SetNextWindowPos(ImVec2(window_width_/2.0, window_height_-control_height_)); 
+        ImGui::SetNextWindowSize(ImVec2(window_width_/2.0, control_height_)); 
         first_load=false;
     }
 
@@ -462,7 +534,7 @@ void Window::showProfileReport(){
         ImGui::Columns(2, nullptr, true);// 开启 2 列布局
 
         PerfCnt &profile = info_->profile_;
-        CPUTimer& timer=info_->timer_;
+        CPUTimer& timer=info_->rasterize_timer_;
         ImGui::Text("Image Setting:");
         ImGui::Text("Width: %d Height: %d",render_->camera_.image_width_,render_->camera_.image_height_);
         ImGui::Text("Camera Pos: (%2.f,%2.f,%2.f)",render_->camera_.position_.x,render_->camera_.position_.y,render_->camera_.position_.z);

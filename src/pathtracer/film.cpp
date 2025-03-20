@@ -1,46 +1,118 @@
 #include"film.h"
+#include"tile.h"
 
-void Tile::render(){
+void Film::initTiles(const RTracingSetting& setting,std::shared_ptr<ColorBuffer> buffer,const Scene* scene){
 
-    for(int j=0;j<pixels_num_.y;++j){
-        for(int i=0;i<pixels_num_.x;++i){
-            glm::vec3 color(0);
-            sampler_->startPixle();
-            for(int s=0;s<setting_.spp_;++s){
-                // generate a ray
-                glm::vec2 offset={0.5,0.5}; //sampler_->getSample2D();
-                glm::vec3 origin=film_->camera_pos_;
-                glm::vec3 sample_pos=up_lt_pos_+float(i+offset.x)*film_->deltaX_+float(j+offset.y)*film_->deltaY_;
-                glm::vec3 direction=sample_pos-origin;
-                float startT=srender::EPSILON;
-                float endT=srender::MAXFLOAT;
+    // init shared memory
+    // tracer_=std::make_shared<PathTracer>();
+    tracer_=std::make_shared<MonteCarloPathTracer>(setting.max_depth_);
+    
+    tile_msg_=std::make_shared<TileMessageBlock>();
+    tile_msg_->arr_check.resize(buffer->getPixelNum());
 
-                Ray ray(origin,direction,startT,endT);
-                // trace the ray and get its color
-                color+=tracer_->traceRay(ray,scene_);
-                
-                // move on to the next image sample.
-                sampler_->nextPixleSample();
-            }
+    // init tiles
+    tile_num_=setting.tiles_num_;
+    assert(buffer->getPixelNum()==resolution_.x*resolution_.y);
 
-            // set color to buffer
-            color=(float)(1.0/setting_.spp_)*color;
-            setPixel(i,j,glm::vec4(color,1.0));
+    // each tile's pixel num
+    int w=(resolution_.x+tile_num_-1)/tile_num_;
+    int h=(resolution_.y+tile_num_-1)/tile_num_;
+    // each tile's physical size
+    glm::vec3 vec_w=float(w)*deltaX_;
+    glm::vec3 vec_h=float(h)*deltaY_;
+    
+    // each row
+    for(int i=0;i<tile_num_;++i){
+        
+        int px_h=(i==tile_num_-1)?resolution_.y-(tile_num_-1)*h:h;
+        
+        // each column
+        for(int j=0;j<tile_num_;++j){
+            int px_w=(j==tile_num_-1)?resolution_.x-(tile_num_-1)*w:w;
 
+            glm::vec2 px_num(px_w,px_h);
+            glm::vec3 pos=up_lt_pos_+float(i)*vec_h+float(j)*vec_w;
+            glm::vec2 px_offset(j*w,i*h);
+            tiles_.emplace_back(std::make_unique<Tile>(j,this,px_num,px_offset,pos,buffer,scene,tracer_,setting));
         }
     }
-}
 
-void Tile::setPixel(const uint32_t x,const uint32_t y,const glm::vec4& color){
-    int offset_x=first_pixel_offset_.x+x;
-    int offset_y=first_pixel_offset_.y+y;
-    // Since the origin of color_buffer is bottom-left, a simple transformation is going on here~ 
-    shared_buffer_->setPixel(offset_x,film_->resolution_.y-1-offset_y,color);
 
-    {
-        std::lock_guard<std::mutex> lock(film_->mx_msg_);
-        ++film_->tile_msg_->cnt;
-        ++film_->tile_msg_->arr_check[offset_x+offset_y*film_->resolution_.x];
-        // std::cout<<"offset_x: "<<offset_x<<" , offset_y:"<<offset_y<<std::endl;
+    // init sampler
+    for(int i=0;i<tiles_.size();++i){
+        tiles_[i]->sampler_=std::make_unique<StratifiedSampler>(setting.spp_, i,true);
+        tiles_[i]->sampler_->preAddSamples2D(1+2*10);    // image samples,each path sample a Wi
+        tiles_[i]->sampler_->preAddSamples1D(1+1*10); // each path sample a emitter
     }
 }
+
+int Film::parallelTiles(){
+
+    /*
+    // VERSION 1: didn't control the number of threads  
+    std::vector<std::thread> threads;
+    for(int i=0;i<tile_num_*tile_num_;++i){
+        threads.emplace_back(std::thread(&Tile::render, tiles_[i].get()));
+    }
+
+    for(auto& t:threads)
+        t.join();
+
+    */
+
+    // get system's max concurrency
+    size_t threadCnt=std::thread::hardware_concurrency()-1;
+    std::cout<<"System's max concurrency is "<<threadCnt+1<<std::endl;
+    
+    size_t total_tiles=tile_num_*tile_num_;
+    threadCnt = std::min(threadCnt,total_tiles);
+    if(threadCnt==0){
+        threadCnt=8;
+    }
+    
+    std::vector<std::thread> threads_pool;
+    threads_pool.reserve(threadCnt);
+
+    // dispatch assignments to each logic thread
+    for(size_t t=0;t<threadCnt;++t){
+        threads_pool.emplace_back(
+            [&,t]{
+                for(size_t i=t;i<total_tiles;i+=threadCnt){
+                    tiles_[i]->render();
+                }
+            }
+        );
+        // threads_pool.back().join();
+        // std::cout<<"finish t="<<t<<std::endl;
+    }
+
+    for(auto& th:threads_pool)
+        th.join();
+
+    for(auto& tile:tiles_){
+        info_.avg_length+=tile->info_.avg_length;
+    }
+    info_.avg_length/=tiles_.size();
+    std::cout<<"Average depth is : "<<info_.avg_length<<std::endl;
+
+#ifdef THREAD_SAFTY_CHECK
+    bool pass=true;
+    if(tile_msg_->cnt!=resolution_.x*resolution_.y){
+        std::cout<<"err: tile_msg_.cnt = "<<tile_msg_->cnt<<";resolution_.x*resolution_.y="<<resolution_.x*resolution_.y<<std::endl;
+        pass=false;
+    }
+    for(int i=0;i<resolution_.x*resolution_.y;++i){
+        if(tile_msg_->arr_check[i]!=1){
+            std::cout<<"err: tile_msg_->arr_check["<<i<<"] != 1 "<<std::endl;
+            pass=false;
+        }
+        
+    }
+    pass==true?std::cout<<"pass= true\n":std::cout<<"pass= false\n";
+#endif
+
+    return threadCnt;
+    
+}
+
+

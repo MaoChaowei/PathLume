@@ -41,6 +41,10 @@ public:
         else
             return mtls_[mtl_type_idx];
     }
+    Vertex& getOneVertex(uint32_t face_idx,uint32_t vertex_idx ){
+        assert(vertex_idx<3&&face_idx<face_num_);
+        return vertices_[indices_[face_idx*3+vertex_idx]];
+    }
     
     std::string getName()const{return name_;}
     PrimitiveType getPrimitiveType()const{ return type_;}
@@ -60,7 +64,7 @@ protected:
     std::vector<Vertex> vertices_;  
     // contains indices to `vertices_`,and every three consecutive vertices/indices constitude a face
     std::vector<uint32_t> indices_;
-    // the normal for all faces, only availabel for MESH
+    // the Normalized normal for all faces, only availabel for MESH
     std::vector<glm::vec3> face_normals_;
 
     // all the information of materials

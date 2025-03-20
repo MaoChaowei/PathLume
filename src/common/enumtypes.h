@@ -1,6 +1,10 @@
 #pragma once
 #include<iostream>
 
+/********************************************************/
+/*                      rasterization                   */
+/********************************************************/
+
 enum class InterpolateSignal{
     Normal          =1<<0,
     FragPos_World   =1<<1,
@@ -68,3 +72,20 @@ enum class RasterizeType{
     Scan_convert=1<<3,
 };
 
+
+
+
+/********************************************************/
+/*                      ray tracing                     */
+/********************************************************/
+
+/**
+ * @brief BSDFType specifies which bsdf will be sampled for each material
+ * 
+ */
+enum class BSDFType{
+    BSDFLIST            = 0,
+    LambertReflection   = 1<<0,
+    PerfectReflection   = 1<<1,
+
+};

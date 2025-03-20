@@ -10,7 +10,7 @@ void Render::GameLoop(){
     int height=camera_.getImageHeight();
 
     Window window;
-    window.init("PathLume", 1400, 1200);
+    window.init("PathLume", 0.8, 0.9);
     window.bindRender(this);
     window.bindRenderIOInfo(&info_);// shared memory
 

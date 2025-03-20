@@ -1,10 +1,12 @@
 #include"material.h"
 
-void Material::setADS(glm::vec3 am,glm::vec3 di,glm::vec3 sp,float shininess){
+void Material::setProperties(glm::vec3 am,glm::vec3 di,glm::vec3 sp,glm::vec3 tr,float ns,float ni){
     ambient_=am;
     diffuse_=di;
     specular_=sp;
-    shininess_=shininess;
+    shininess_=ns;
+    ior_=ni;
+    transmittance_=tr;
 }
 
 void Material::setTexture(MltMember mtype,std::string path){

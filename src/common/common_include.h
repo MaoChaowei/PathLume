@@ -15,18 +15,24 @@
 #include<math.h>
 #include<algorithm>
 #include<limits>
+#include <stdexcept>
 
 #define TIME_RECORD // a switch of time recording
-
+// #define THREAD_SAFTY_CHECK
+// #define DEBUG_MODE
 
 namespace srender{
     
 // 定义浮点数比较的容差
-const float EPSILON = 1e-6f;
-const int INF = 2147483647;
-const float NEAR_Z=-1;
-const float FAR_Z=1;
-const float MAXFLOAT=std::numeric_limits<float>::max();
-const float MINFLOAT=std::numeric_limits<float>::min();
+constexpr float EPSILON = 1e-6f;
+constexpr int INF = 2147483647;
+constexpr float NEAR_Z=-1;
+constexpr float FAR_Z=1;
+constexpr float MAXFLOAT=std::numeric_limits<float>::max();
+constexpr float MINFLOAT=std::numeric_limits<float>::min();
+constexpr float PI=3.14159265358979323846;
+constexpr float INV_PI=1.0/PI;
+constexpr float OneMinusEpsilon = 0x1.fffffep-1;
+constexpr float MAXPDFVALUE=100;
 
 }

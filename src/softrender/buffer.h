@@ -1,7 +1,6 @@
 #pragma once
 #include"common_include.h"
 
-
 class ColorBuffer{
 public:
     
@@ -30,6 +29,13 @@ public:
     uint32_t getPixelNum()const{return pixel_num_;}
 
     // make sure that x and y must in the window
+    /**
+     * @brief Set the Pixel color in color buffer
+     * 
+     * @param x 
+     * @param y 
+     * @param color must in device space ranging in[0~255]
+     */
     void setPixel(int x,int y,const glm::vec4& color)const{
         int idx=y*width_+x;
         if(idx>=pixel_num_||idx<0) 
@@ -42,6 +48,8 @@ public:
     ~ColorBuffer(){
         delete[]addr_;
     }
+    
+    bool saveToImage(const std::string& filename) const;
 
 private:
     int width_;

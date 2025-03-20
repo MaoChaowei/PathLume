@@ -74,6 +74,7 @@ public:
     std::unique_ptr<std::vector<AABB3d>> blas_sboxes_;
 
     glm::mat4 modle_;
+    glm::mat4 inv_modle_;
     AABB3d worldBBox_;
     ShaderType shader_;
 };

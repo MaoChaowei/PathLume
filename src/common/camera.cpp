@@ -224,6 +224,7 @@ std::shared_ptr<Film> Camera::getNewFilm()const{
 	coef=this->half_near_height_*2.0/this->image_height_;
 	film->deltaY_=-coef*this->up_;
 	film->camera_pos_=position_;
+	film->camera_front_=front_;
 
 	return std::move(film);
 }

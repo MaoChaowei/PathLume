@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <mutex>
+#include<stdexcept>
 
 enum class TimerType
 {
@@ -73,14 +74,15 @@ public:
         std::cout <<" ------------------------------- "<<std::endl;
     }
 
-    // 获取指定类型计时器的累积时间
-    void reportElapsedTime(std::string type)
+    // 获取指定类型计时器的累积时间(s)
+    float getElapsedTime(std::string type)
     {
         std::lock_guard<std::mutex> lock(mutex_);
         auto it = timers_.find(type);
         if (it != timers_.end())
-        {
-            std::cout << type << " Time: " << it->second.elapsed_time / 1000.0 << " ms" << std::endl;
+            return it->second.elapsed_time / 1000000.0;
+        else{
+            throw std::runtime_error("getElapsedTime::no such timer...");
         }
     }
 

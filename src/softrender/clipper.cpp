@@ -191,7 +191,7 @@ bool Render::backCulling(const glm::vec3& face_norm,const glm::vec3& dir) const 
 // backculling and frustrum culling
 void Render::cullingTriangleInstance(ASInstance& instance,const glm::mat4 normal_mat){
     instance.refreshVertices();
-    profile_.total_face_num_+=instance.blas_->object_->getFaceNum();
+    info_.profile_.total_face_num_+=instance.blas_->object_->getFaceNum();
 
     auto& obj=instance.blas_->object_;
     const std::vector<Vertex>& in_vertices=obj->getconstVertices();
@@ -237,12 +237,12 @@ void Render::cullingTriangleInstance(ASInstance& instance,const glm::mat4 normal
         auto& v3=in_vertices[idx3];
 
         /* ---------------- back culling ---------------- */
-        if(setting_.back_culling&&obj->isBackCulling()){
+        if(info_.raster_setting_.back_culling&&obj->isBackCulling()){
 
             glm::vec3 norm=normal_mat*glm::vec4(objfacenorms[face_cnt],0.f);
             glm::vec3 dir=camera_.getPosition()-v1.w_pos_;
             if(backCulling(norm,dir)==true){
-                ++profile_.back_culled_face_num_;
+                ++info_.profile_.back_culled_face_num_;
                 out_primitives_buffer.emplace_back(ClipFlag::refused,
                                                 -1,// mtlidx_
                                                 0, // vertex_start_pos_
@@ -262,7 +262,7 @@ void Render::cullingTriangleInstance(ASInstance& instance,const glm::mat4 normal
 
         // rapid reject
         if (outcode_AND != 0) {
-            ++profile_.clipped_face_num_;
+            ++info_.profile_.clipped_face_num_;
             out_primitives_buffer.emplace_back(ClipFlag::refused,
                                                 -1,// mtlidx_
                                                 0, // vertex_start_pos_
@@ -299,7 +299,7 @@ void Render::cullingTriangleInstance(ASInstance& instance,const glm::mat4 normal
         }
         // totally clipped out
         if(clipflag){
-            ++profile_.clipped_face_num_;
+            ++info_.profile_.clipped_face_num_;
             out_primitives_buffer.emplace_back(ClipFlag::refused,
                                             -1,// mtlidx_
                                             0, // vertex_start_pos_
@@ -309,7 +309,7 @@ void Render::cullingTriangleInstance(ASInstance& instance,const glm::mat4 normal
 
         int vnum = input.size();
         if (vnum < 3){
-             ++profile_.clipped_face_num_;
+             ++info_.profile_.clipped_face_num_;
             out_primitives_buffer.emplace_back(ClipFlag::refused,
                                                 -1,// mtlidx_
                                                 0, // vertex_start_pos_
@@ -324,7 +324,7 @@ void Render::cullingTriangleInstance(ASInstance& instance,const glm::mat4 normal
             out_vertices.emplace_back(input[i]);
             out_vertices.emplace_back(input[i + 1]);
         }
-        profile_.total_face_num_+=vnum-3;
+        info_.profile_.total_face_num_+=vnum-3;
         out_primitives_buffer.emplace_back(ClipFlag::clipped,
                                             in_mtlidx[face_cnt], // mtlidx_
                                             vertex_start_pos,    // vertex_start_pos_

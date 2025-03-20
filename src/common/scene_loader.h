@@ -5,6 +5,8 @@
 #include"texture.h"
 #include"light.h"
 #include"as.h"
+#include"emitter.h"
+#include"sample.h"
 #include<unordered_map>
 
 
@@ -56,6 +58,47 @@ public:
     // when leaf_num is changed, blas should be rebuilt.
     void rebuildBLAS();
 
+    /**
+     * @brief Before ray tracing, Scene object must have used this function to collect all the emissive faces
+     * 
+     */
+    void findAllEmitters(){
+        emits_.clear();
+        for(auto& inst:tlas_->all_instances_){
+            auto& obj=inst.blas_->object_;
+            auto& facenormal=obj->getFaceNorms();
+
+            for(int face=0;face<obj->getFaceNum();++face){
+                auto mtl=obj->getFaceMtl(face);
+                if(mtl&&mtl->isEmissive()){
+                    for(int i=0;i<3;++i){
+                        emits_.addEmitter(&obj->getOneVertex(face,0),&obj->getOneVertex(face,1),&obj->getOneVertex(face,2),
+                                          inst.modle_*glm::vec4(facenormal[face],0),
+                                          mtl->radiance_rgb_);
+                    }
+                }
+            }
+        }
+        emits_.setPreSum();
+    }
+
+    void sampleEmitters(const glm::vec3& src_pos,LightSampleRecord& lsRec,Sampler& sampler)const{
+
+        float u0=sampler.getSample1D();         // sample a triangle
+        glm::vec2 u12=sampler.getSample2D();    // sample a point inside the triangle
+        emits_.sampleLight(src_pos,lsRec,u0,u12.x,u12.y);
+
+        // if the pdf is an outlier , don't consider this shadow ray
+        if(lsRec.pdf_<srender::EPSILON||lsRec.pdf_>srender::MAXPDFVALUE) 
+            lsRec.shadow_ray_=nullptr;
+
+        return;
+    }
+
+    float getLightPDF(const Ray& ray,const IntersectRecord& inst,float& G)const{
+        return emits_.getSamplePDF(ray,inst,G);
+    }
+
     
 private:
     
@@ -66,10 +109,11 @@ private:
     int vertex_num_;
     int face_num_;
 
-    // lights
+    // virtual lights
     std::vector<std::shared_ptr<Light>> all_lights_;
 
-
+    // tangible lights
+    Emitters emits_;
 };
 
 

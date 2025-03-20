@@ -8,6 +8,9 @@ project(PathLume VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# AddressSanitizer(in case of stack overflow)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g")
+
 # 添加外部库
 set(EXTERNAL_DIR ${CMAKE_SOURCE_DIR}/external)
 #glfw
@@ -55,7 +58,11 @@ target_link_libraries(pathlume PRIVATE ${LIB_LINKS} )
 
 
 # output dir
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+# if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#     set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build_debug/bin)
+# elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+#     set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build_release/bin)
+# endif()
 
 # disable some warnings!
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")

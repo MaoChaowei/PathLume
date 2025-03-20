@@ -2,7 +2,7 @@
 set PROJECT_DIR=%~dp0
 
 
-set BUILD_DIR=%PROJECT_DIR%build
+set BUILD_DIR=%PROJECT_DIR%build_debug
 
 if exist "%BUILD_DIR%" (
     echo Cleaning up build directory...

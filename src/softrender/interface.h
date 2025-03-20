@@ -67,5 +67,7 @@ struct RenderIOInfo{
     RasterSetting raster_setting_;
     RTracingSetting tracer_setting_;
     PerfCnt profile_;
-    CPUTimer timer_;
+    CPUTimer rasterize_timer_;            // (us)
+    CPUTimer pathtracer_timer_;
+    
 };

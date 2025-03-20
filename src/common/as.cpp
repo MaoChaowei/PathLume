@@ -28,17 +28,29 @@ bool AccelStruct::traceRayInAccel(const Ray& ray,int32_t node_idx,IntersectRecor
     assert(left!=-1&&right!=-1);
 
     IntersectRecord left_hit,right_hit;
-    left_hit.t_=right_hit.t_=srender::MAXFLOAT;
 
     bool flag_lt=traceRayInAccel(ray,left,left_hit,is_tlas);
     bool flag_rt=traceRayInAccel(ray,right,right_hit,is_tlas);
-    if(is_tlas){
-        left_hit.as_node_.tlas_node_idx_=node_idx;
-        right_hit.as_node_.tlas_node_idx_=node_idx;
-    }else{
-        left_hit.as_node_.blas_node_idx_=node_idx;
-        right_hit.as_node_.blas_node_idx_=node_idx;
-    }
+
+    // if(flag_lt&&left_hit.t_<right_hit.t_){
+    //     inst.t_=left_hit.t_;
+    //     inst.normal_=left_hit.normal_;
+    //     inst.material_=left_hit.material_;
+    //     inst.pos_=left_hit.pos_;
+    // }else if(flag_rt&&right_hit.t_<left_hit.t_){
+    //     inst.t_=right_hit.t_;
+    //     inst.normal_=right_hit.normal_;
+    //     inst.material_=right_hit.material_;
+    //     inst.pos_=right_hit.pos_;
+    // }
+    // else{
+    //     return false;
+    // }
+
+    // return true;
+
+    left_hit.as_node_.tlas_node_idx_=right_hit.as_node_.tlas_node_idx_=node_idx;
+    left_hit.as_node_.blas_node_idx_=right_hit.as_node_.blas_node_idx_=node_idx;   
 
     if(flag_lt||flag_rt){
         inst=left_hit.t_<right_hit.t_?left_hit:right_hit;
@@ -61,9 +73,6 @@ bool BLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
     BVHnode& node=tree_->at(id);
     auto& vertices=object_->getVertices();
     auto& indices=object_->getIndices();
-
-    // set t_ to maxfloat for recording the nearest t later.
-    inst.t_=srender::MAXFLOAT;
 
     // check all the primitives inside
     for(int i=0;i<node.primitive_num;++i){
@@ -89,34 +98,39 @@ bool BLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
  * 
  */
 bool TLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
+    // find asinstance
     auto& node=tree_->at(inst.as_node_.tlas_node_idx_);
     auto& instance=all_instances_[node.prmitive_start];
+
     // transform ray into model's space
-    auto mat_inv=glm::inverse(instance.modle_);
+    auto mat_inv=instance.inv_modle_;
     auto morigin=mat_inv*glm::vec4(ray.origin_,1.0);
     auto mdir=mat_inv*glm::vec4(ray.dir_,0.0);
     Ray mray(morigin,mdir);
 
+    // dive into blas
     if(instance.blas_->traceRayInAccel(mray,0,inst,false)){
         // transform intersect record back to world space.
-        // Todo: inst.t_ should be scaled when mdir has been scaled before.
         inst.pos_=instance.modle_*glm::vec4(inst.pos_,1.0);
-        inst.wo_=glm::normalize(instance.modle_*glm::vec4(inst.wo_,0.0));
         inst.normal_=glm::normalize(glm::vec3(glm::transpose(mat_inv)*glm::vec4(inst.normal_,0.0)));
+        inst.t_=glm::length(inst.pos_-ray.origin_);
         
         return true;
     }
+
     return false;
 }
 
 ASInstance::ASInstance(std::shared_ptr<BLAS>blas,const glm::mat4& mat,ShaderType shader):blas_(blas),modle_(mat),shader_(shader){
-        AABB3d rootBox=blas_->tree_->at(0).bbox;
-        worldBBox_=rootBox.transform(modle_);
+    AABB3d rootBox=blas_->tree_->at(0).bbox;
+    worldBBox_=rootBox.transform(modle_);
 
-        vertices_=std::make_unique<std::vector<Vertex>>();
-        primitives_buffer_=std::make_unique<std::vector<PrimitiveHolder>>();
-        blas_sboxes_=std::make_unique<std::vector<AABB3d>>(blas_->tree_->size());
-    }
+    inv_modle_=glm::inverse(modle_);
+
+    vertices_=std::make_unique<std::vector<Vertex>>();
+    primitives_buffer_=std::make_unique<std::vector<PrimitiveHolder>>();
+    blas_sboxes_=std::make_unique<std::vector<AABB3d>>(blas_->tree_->size());
+}
 
 void ASInstance::refreshVertices(){
     vertices_=std::make_unique<std::vector<Vertex>>();

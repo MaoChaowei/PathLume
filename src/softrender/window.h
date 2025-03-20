@@ -10,19 +10,18 @@
 #include"interface.h"
 #include"common_include.h"
 
-#define IMGUI_HEIGHT 450
 // forward declair
 class Render;
 
 class Window{
 public:
     Window(){}
-    Window(const char* name,int width,int height){
-        init(name,width,height);
+    Window(const char* name,float width_factor,float height_factor){
+        init(name,width_factor,height_factor);
     }
 
     // 初始化glfw窗口
-    int init(const char* name,int width,int height);
+    int init(const char* name,float width_factor,float height_factor);
 
     void bindRender(Render* rptr){
         render_=rptr;
@@ -53,7 +52,9 @@ public:
 
     void newImGuiFrame();
 
-    void showMyImGuiWindow();
+    void ImGuiSoftRenderWindow();
+
+    void ImGuiPathTracerWindow();
 
     void showProfileReport();
     
@@ -69,13 +70,14 @@ private:
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void mouseCallback(GLFWwindow* window, double xpos, double ypos);
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+    static void window_size_callback(GLFWwindow* window, int width, int height);
 
     GLFWwindow* window_;
     Render* render_;
     RenderIOInfo* info_;
     static ImGuiIO* io;
     unsigned int shaderProgram_;
-    unsigned int vp_width_ , vp_height_;
+
     unsigned int texture_ , VAO_;
     
     float lastX_, lastY_; // 鼠标位置

@@ -44,6 +44,10 @@ struct BVHnode:public Hitem
             }
         }
 
+        // // the ray need to accept this box
+        // if(interval_max<ray.st_t_||interval_min>ray.ed_t_)
+        //     return false;
+
         return true;
     }
     bool rayIntersect(const Ray& ray,IntersectRecord& inst)const override{
