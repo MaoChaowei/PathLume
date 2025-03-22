@@ -95,8 +95,13 @@ public:
         return;
     }
 
-    float getLightPDF(const Ray& ray,const IntersectRecord& inst,float& G)const{
-        return emits_.getSamplePDF(ray,inst,G);
+    float getLightPDF(const Ray& ray,const IntersectRecord& inst)const{
+        float pdf=emits_.getSamplePDF(ray,inst);
+
+        // For numerical stability
+        pdf=std::clamp(pdf,1e-3f,srender::MAXPDFVALUE);
+
+        return pdf;
     }
 
     

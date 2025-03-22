@@ -30,7 +30,7 @@ struct LightSampleRecord{
     float dist_=0;                      // distance between src_pos and sample_pos
     glm::vec3 value_=glm::vec3(0.f);    // for Mento Carlo: Radiance*cos(theta')/(dist^2*A)
     float pdf_=0;                       // pdf in dWi measurement rather than dA, that is G/area
-    float G_=0;                         // costheta/squred_dist;
+    // float G_=0;                         // costheta/squred_dist;
 };
 
 /**
@@ -84,7 +84,7 @@ public:
         float costheta=std::max(glm::dot(tri.normal,glm::normalize(-dist_vec)),0.f);    // ignore the back face
 
         float G=costheta/squred_dist;
-        lsRec.G_=G;
+        // lsRec.G_=G;
   
         lsRec.pdf_=1/(totalWeight_*G);  
         glm::vec3 Le= tri.radiance_rgb;
@@ -95,7 +95,7 @@ public:
     /**
      * @brief Given an incident wi (`ray`) and its intersection `inst` with emitter, return its pdf(wi)
      */
-    float getSamplePDF(const Ray& ray,const IntersectRecord& inst,float& G)const{
+    float getSamplePDF(const Ray& ray,const IntersectRecord& inst)const{
 
         if(glm::dot(ray.dir_,inst.normal_)>0.f)
             throw std::runtime_error("Emitter:getSamplePDF->glm::dot(ray.dir_,inst.normal_)>0.f");
@@ -107,7 +107,7 @@ public:
 
         float squred_dist=inst.t_*inst.t_;
 
-        G=costheta/squred_dist;
+        float G=costheta/squred_dist;
 
         return 1/(totalWeight_*G);
 

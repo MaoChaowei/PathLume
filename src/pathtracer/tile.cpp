@@ -39,7 +39,6 @@ void Tile::render(){
 
     // do some statistics
     info_.avg_length/=(pixels_num_.x*pixels_num_.y*setting_.spp_);
-    std::cout<<"a tile's info_.avg_length="<<info_.avg_length<<std::endl;
 
 }
 

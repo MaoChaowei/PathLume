@@ -4,8 +4,8 @@
 void Film::initTiles(const RTracingSetting& setting,std::shared_ptr<ColorBuffer> buffer,const Scene* scene){
 
     // init shared memory
-    // tracer_=std::make_shared<PathTracer>();
     tracer_=std::make_shared<MonteCarloPathTracer>(setting.max_depth_);
+    // tracer_=std::make_shared<MonteCarloPathTracerNEE>(setting.max_depth_);
     
     tile_msg_=std::make_shared<TileMessageBlock>();
     tile_msg_->arr_check.resize(buffer->getPixelNum());

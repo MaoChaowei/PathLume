@@ -39,7 +39,7 @@ private:
     glm::vec3 camera_pos_;
     glm::vec3 camera_front_;// delete this
     
-    // Critical Resource
+    // Critical Resources
     std::shared_ptr<TileMessageBlock> tile_msg_;    // use `mx_msg_` to avoid race.
     std::mutex mx_msg_;
     std::shared_ptr<PathTracer> tracer_;        // read only, thread safe

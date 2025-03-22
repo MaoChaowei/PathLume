@@ -224,10 +224,8 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
     for(auto& ins:this->scene_.getAllInstances()){
         for(auto& mtl:ins.blas_->object_->getMtls()){
             if(lights_mtl.find(mtl->name_)!=lights_mtl.end()){
-                // set type
-                mtl->type_=MtlType::AreaLight;
-                // set rgb
-                mtl->radiance_rgb_=lights_mtl[mtl->name_];
+                // set type and rgb
+                mtl->initEmissionType(MtlType::AreaLight,lights_mtl[mtl->name_]);
             }
         }
     }

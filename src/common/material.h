@@ -7,13 +7,20 @@ enum class MltMember{
     Diffuse,
     Specular,
 };
-// TODO : how to classify different materials to instruct the usage of bsdf
-enum class MtlType{
-    AreaLight   =1<<0,
-    Diffuse     =1<<1,
-    Reflect     =1<<2,
 
-    NonEmissive =Diffuse|Reflect,
+enum class MtlType{
+    NotInit     =0,
+
+    // Scattering type
+    Diffuse     =1<<1,
+    Specular    =1<<2,
+    Glossy      =Diffuse|Specular, 
+        // TODO : use Cook-Torrance to unify glossy material 
+
+    // Emission type
+    AreaLight   =1<<10,
+
+    NonEmissive =Diffuse|Specular|Glossy,
     Emissive = AreaLight,
 };
 inline MtlType operator|(const MtlType& s1,const MtlType& s2){
@@ -29,12 +36,30 @@ inline MtlType operator^(const MtlType& s1,const MtlType& s2){
 class Material{
 public:
     // init type as non-emissive
-    Material():type_(MtlType::NonEmissive){}
+    Material():type_(MtlType::NotInit){}
 
-    void setType(MtlType type){type_=type;}
     void setProperties(glm::vec3 am,glm::vec3 di,glm::vec3 sp,glm::vec3 tr=glm::vec3(1),float ns=1,float ni=1);
     void setName(std::string name){ name_= name; }
     void setTexture(MltMember mtype,std::string path);
+
+    // initialize scattering type
+    void initScattringType(){
+        if(!(type_==MtlType::NotInit)){
+            return;
+        }
+        if(diffuse_[0]||diffuse_[1]||diffuse_[2])
+            type_=type_|MtlType::Diffuse;
+        if(specular_[0]||specular_[1]||specular_[2])
+            type_=type_|MtlType::Specular;
+    }
+
+    // initialize emission type if any
+    void initEmissionType(MtlType type,const glm::vec3& radiance ){
+        if((int)(type&MtlType::Emissive)){
+            type_=type_|type;
+            radiance_rgb_=radiance;
+        }
+    }
 
     std::shared_ptr<Texture> getTexture(MltMember mtype)const;
     const glm::vec3 getAmbient()const{ return ambient_; }

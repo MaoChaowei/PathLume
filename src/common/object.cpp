@@ -96,6 +96,8 @@ void Mesh::initObject(const tinyobj::ObjReader& reader,std::string filepath,bool
         if(m.diffuse_texname.size())    mptr->setTexture(MltMember::Diffuse,prefix+m.diffuse_texname);
         if(m.specular_texname.size())    mptr->setTexture(MltMember::Specular,prefix+m.specular_texname);
 
+        mptr->initScattringType();  
+
         mtls_.push_back(mptr);
     }
 

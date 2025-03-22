@@ -83,8 +83,8 @@ public:
     }
 
     // get random double [min, max)
-    double nextFloat(double min=0.0, double max=1.0) {
-        std::uniform_real_distribution<double> dist(min, max);
+    float nextFloat(float min=0.0, float max=1.0) {
+        std::uniform_real_distribution<float> dist(min, max);
         return dist(rng);
     }
 

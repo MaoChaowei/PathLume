@@ -19,9 +19,9 @@ public:
     IntersectRecord& operator=(const IntersectRecord& inst);
 
     // use material to initialize bsdf
-    std::shared_ptr<BSDF> getBSDF(BSDFType type);
+    std::shared_ptr<BSDF> getBSDF();
 
-    // Generate an orthonormal base for tangent space samples, refering: https://graphics.pixar.com/library/OrthonormalB/paper.pdf
+    // Generate an orthonormal base for tangent space samples. Reference: https://graphics.pixar.com/library/OrthonormalB/paper.pdf
     std::shared_ptr<glm::mat3> genTBN();
 
     // transform ray from world space to tangent space local to the hit point.
@@ -34,7 +34,7 @@ public:
 
     glm::vec3 pos_;
     float t_;           // distance from origin to the hit point
-    glm::vec3 normal_;  // always opposed to incident ray,normalized
+    glm::vec3 normal_;  // the front direction of the face,normalized
     std::shared_ptr<glm::mat3> TBN_;     // Tangent, Bitangent and Normal vectors in world space
 
     std::shared_ptr<const Material> material_;  // to generate bsdf

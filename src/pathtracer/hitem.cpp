@@ -15,21 +15,37 @@ IntersectRecord& IntersectRecord::operator=(const IntersectRecord& inst){
 }
 
 // use material to initialize bsdf
-std::shared_ptr<BSDF> IntersectRecord::getBSDF(BSDFType type){
+std::shared_ptr<BSDF> IntersectRecord::getBSDF(){
     std::shared_ptr<BSDF> bsdf_;
 
     // init TBN Matrix
     if(!TBN_)  TBN_=genTBN();
+    assert(material_);
 
-    if(type==BSDFType::LambertReflection){
-        assert(material_);
-        bsdf_=std::make_shared<LambertRefBSDF>(material_->diffuse_);
+    auto type=this->material_->type_;
+    // set emission bits to 0
+    type=MtlType((int)type&(~(int)MtlType::Emissive));
+
+    // test scattering bits
+    if(type==MtlType::Diffuse){
+        bsdf_=std::make_shared<LambertBRDF>(material_->diffuse_);
+    }
+    else if(type==MtlType::Specular){
+        bsdf_=std::make_shared<SpecularBRDF>(material_->specular_);
+    }
+    else if(type==MtlType::Glossy){
+        auto list=std::make_shared<BSDFlist>();
+        // list->insertBSDF(std::make_shared<LambertBRDF>(material_->diffuse_));
+        // list->insertBSDF(std::make_shared<SpecularBRDF>(material_->specular_));
+        list->insertBSDF(std::make_shared<BPhongSpecularBRDF>(material_->specular_,material_->shininess_));
+        list->initWeights();
+
+        bsdf_=list;
     }
     else{
-        assert(false);
-        throw std::runtime_error("haven't implemented!");
+        bsdf_=std::make_shared<LambertBRDF>(material_->diffuse_);
+        // std::cout<<"IntersectRecord::getBSDF():Unknown MtlType "<<material_->getName()<<", Set to Diffuse\n";
     }
-
     return bsdf_;
 }
 

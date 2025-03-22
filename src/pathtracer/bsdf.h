@@ -4,6 +4,10 @@
 #include"hitem.h"
 #include"enumtypes.h"
 
+/**
+ * @brief Encapsulate variables for Sampling and Evaluate BSDF and its PDF as well.
+ * 
+ */
 struct BSDFRecord{
 public:
     IntersectRecord& inst;
@@ -13,8 +17,8 @@ public:
     glm::vec3 wo;
     glm::vec3 wi;
 
-    // costheta is the cosine value between normal of the hit point and world-wi, or in tangent space is dot((0,0,1),wi)=wi_z. 
-    // But it's always positive by "max(0.f,wi_z)" 
+    // costheta is the cosine value between normal of the hit point and world-wi, which in tangent space is dot((0,0,1),wi)=wi_z. 
+    // it's always positive by "max(0.f,wi_z)" 
     float costheta;
 
     // pdf of sampling wi
@@ -24,11 +28,19 @@ public:
     glm::vec3 bsdf_val;
 
 public:
-    /* ray_dir is the direction of the incident ray, which is opposed to the normal of the surface.  */ 
+
+    // Init BSDFRecord without knowing wi. --> To sample and evaluate
+    // ray_dir is in the same direction as wo 
     BSDFRecord(IntersectRecord& i,Sampler& s,glm::vec3 ray_dir):inst(i),sampler(s){
         wo=inst.ray2TangentSpace(ray_dir);
     }
+
+    // Init BSDFRecord already knowing wi. --> To evaluate only
+    // ray_dir is in the same direction as wo 
+    BSDFRecord(IntersectRecord& i,Sampler& s,glm::vec3 wo,glm::vec3 wi):inst(i),sampler(s),wo(wo),wi(wi){}
+
     // if bsdf_val or pdf is too small,return false.
+    // so if I don't want a sample, simply set pdf to -1
     bool isValid(){
         for(int i=0;i<3;++i){
             if(bsdf_val[i]<srender::EPSILON)
@@ -43,47 +55,57 @@ public:
 
 
 /**
- * @brief BSDF modelizes the sampling of scattering models.
+ * @brief BSDF modelizes the sampling and evaluation of scattering models.
  * It exposes functions such as: evaluating(bsdf value) and 
  * sampling([0,1]^2->[theta,phi]) the model, and querying the pdf(w_i).
- * Note that Wi and Wo are both in tangent space local to the intersection point.
+ * Note that Wi and Wo are both in tangent space local to the hit point 
+ * and both point in the direciton of Normal
  */
 class BSDF{
 public:
     BSDF(BSDFType type):bsdf_type_(type){}
     virtual ~BSDF(){}
 
-    // wo and wi should be in tangent space
-    virtual glm::vec3 evalBSDF(const glm::vec3& wo,const glm::vec3& wi)const {
+    /**
+     * @brief After the sampling of wi, this function takes charge of calculate bsdf_value and pdf.
+     *        So remember to sample before calling this.
+     */
+    virtual void evalBSDF(BSDFRecord& rec)const {
         throw std::runtime_error("Confront Base class's virtural function...");
-        return glm::vec3(0);
     }
-    // wo and wi should be in tangent space
-    virtual float calculatePDF(const glm::vec3& wo,const glm::vec3& wi)const{
-        throw std::runtime_error("Confront Base class's virtural function...");
-        return 0;
-    }
-    // wo and wi should be in tangent space
+
+    /**
+     * @brief Sample a wi in tangent space with the information stored in BSDFRecord,including wo,inst,sampler and such.
+     *        Have to fill wi,pdf,costheta and bsdf value
+     */
     virtual void sampleBSDF(BSDFRecord& bsdfRec)const=0;
 
-    // each BSDF has a weight, for example, LambertianBSDF's weight is albedo(Kd)
+    /**
+     * @brief When choosing among different bsdfs, each BSDF are required to offer a weight, 
+     *        for example, LambertianBSDF's weight is albedo(Kd)
+     */
     virtual float getWeight()const=0;
 
     /**
      * @brief static function for sampling in hemishpere with cos weighted
      * 
      * @param uniform : samples in [0,1]^2
-     * @return float : pdf(wi)
      */
-    static float SpHSphereCosWeight(float& theta,float& phi,const glm::vec2& uniform){
+    static void SpHSphereCosWeight(float& theta,float& phi,const glm::vec2& uniform){
         theta=acos(sqrt(uniform[0]));
         phi=2*srender::PI*uniform[1];
-        
-        return cos(theta)*srender::INV_PI;
+    }
+
+    static glm::vec3 polar2Cartesian(float theta,float phi){
+        float x=1.0*sin(theta)*cos(phi);
+        float y=1.0*sin(theta)*sin(phi);
+        float z=1.0*cos(theta);     
+        return glm::vec3(x,y,z);   
     }
 
 protected:
     BSDFType bsdf_type_;
+    
 };
 
 /**
@@ -92,8 +114,8 @@ protected:
  */
 class BSDFlist:public BSDF{
 public:
-    BSDFlist(BSDFType type):BSDF(type),total_weight_(0.f){}
-    // Each material
+    BSDFlist(BSDFType type=BSDFType::BSDFLIST):BSDF(type),total_weight_(0.f){}
+
     void insertBSDF(std::shared_ptr<const BSDF> bsdf){
         bsdfs_.emplace_back(bsdf);
         float w=bsdf->getWeight();
@@ -101,30 +123,44 @@ public:
         weights_.emplace_back(w);
     }
 
-    void caluculateWeights(){
+    void initWeights(){
         for(int i=0;i<weights_.size();++i){
             weights_[i]/=total_weight_;
         }
     }
 
-    // wo and wi should be in tangent space
-    glm::vec3 evalBSDF(const glm::vec3& wo,const glm::vec3& wi)const override{
-        return glm::vec3(0);
+    void evalBSDF(BSDFRecord& rec)const override{
+        // choose a bsdf randomly
+        float rd=rec.sampler.pcgRNG_.nextFloat();
+        uint32_t chosen=std::floor(bsdfs_.size()*rd);
+
+        // check wi is prepared in DEBUG mode
+        assert(fabs(glm::length(rec.wi)-1.0)<srender::EPSILON);
+
+        // get pdf of this bsdf
+        bsdfs_[chosen]->evalBSDF(rec);
+
+        // adjust pdf with bsdf's weight 
+        rec.pdf*=weights_[chosen];
+
     }
 
-    // wo and wi should be in tangent space
-    float calculatePDF(const glm::vec3& wo,const glm::vec3& wi)const override{
-        return 0;
-    }
-    // wo and wi should be in tangent space
     void sampleBSDF(BSDFRecord& bsdfRec)const override{
+        // choose a bsdf randomly
+        float rd=bsdfRec.sampler.pcgRNG_.nextFloat();
+        uint32_t chosen=std::floor(bsdfs_.size()*rd);
 
+        // sample this bsdf
+        bsdfs_[chosen]->sampleBSDF(bsdfRec);
+
+        // adjust pdf with bsdf's weight 
+        bsdfRec.pdf*= weights_[chosen];
     }
 
-    float getWeight()const{
+    float getWeight()const override{
         return total_weight_;
     }
-
+ 
 private:
 
     std::vector<float> weights_;
@@ -133,15 +169,13 @@ private:
 
 };
 
-class LambertRefBSDF:public BSDF{
+class LambertBRDF:public BSDF{
 public:
-    LambertRefBSDF(glm::vec3 r,BSDFType type=BSDFType::LambertReflection):BSDF(type),albedo_(r){}
+    LambertBRDF(glm::vec3 r,BSDFType type=BSDFType::LambertReflection):BSDF(type),albedo_(r){}
 
-    glm::vec3 evalBSDF(const glm::vec3& wo,const glm::vec3& wi)const override{
-        return albedo_*srender::INV_PI;
-    }
-    float calculatePDF(const glm::vec3& wo,const glm::vec3& wi)const override{
-        return std::max(0.f,wi.z)*srender::INV_PI;
+    void evalBSDF(BSDFRecord& rec)const override{
+        rec.bsdf_val=albedo_*srender::INV_PI;
+        rec.pdf=std::max(0.f,rec.wi.z)*srender::INV_PI;
     }
 
     void sampleBSDF(BSDFRecord& bsdfRec)const override{
@@ -149,18 +183,15 @@ public:
         // sample the hemisphere,get wi
         glm::vec2 uniform=bsdfRec.sampler.getSample2D();
         float theta,phi;
-        bsdfRec.pdf=this->SpHSphereCosWeight(theta,phi,uniform);
-        
-        float x=1.0*sin(theta)*cos(phi);
-        float y=1.0*sin(theta)*sin(phi);
-        float z=1.0*cos(theta);     // z is the direction of normal in this local space
-        bsdfRec.wi=glm::vec3(x,y,z);        
-        bsdfRec.bsdf_val=evalBSDF(bsdfRec.wo,bsdfRec.wi);
+        this->SpHSphereCosWeight(theta,phi,uniform);   
+        bsdfRec.wi=polar2Cartesian(theta,phi);
         bsdfRec.costheta=std::max(bsdfRec.wi.z,0.f);
+  
+        this->evalBSDF(bsdfRec);
 
     }
 
-    float getWeight()const{
+    float getWeight()const override{
         return albedo_[0]+albedo_[1]+albedo_[2];
     }
 
@@ -169,3 +200,97 @@ private:
 
 };
 
+class SpecularBRDF:public BSDF{
+public:
+    SpecularBRDF(glm::vec3 ks,BSDFType type=BSDFType::PerfectReflection):BSDF(type),albedo_(ks){}
+
+    void evalBSDF( BSDFRecord& rec)const override{
+        auto reflected=perfectReflect(glm::vec3(0,0,1),rec.wo);
+        if(glm::length(reflected-rec.wi)<srender::EPSILON){
+            rec.bsdf_val = albedo_;
+            rec.pdf=1.0;
+        }
+        else{
+            rec.bsdf_val = glm::vec3(0.f);
+            rec.pdf=0.f;
+        }
+    }
+
+
+    void sampleBSDF(BSDFRecord& bsdfRec)const override{
+        
+        bsdfRec.wi=perfectReflect(glm::vec3(0,0,1),bsdfRec.wo);
+        bsdfRec.bsdf_val = albedo_;
+        bsdfRec.pdf=1.0;
+        bsdfRec.costheta=std::max(bsdfRec.wi.z,0.f);
+    }
+
+    float getWeight()const override{
+        return albedo_[0]+albedo_[1]+albedo_[2];
+    }
+
+private:
+    glm::vec3 perfectReflect(const glm::vec3& normal,const glm::vec3& wo)const{
+        auto wi=2*glm::dot(wo,normal)*normal-wo;
+        assert(fabs(glm::length(wi)-1)<srender::EPSILON);   // wi should be normalized by nature
+        return wi;
+    }
+
+    glm::vec3 albedo_;
+
+};
+
+
+class BPhongSpecularBRDF:public BSDF{
+public:
+    BPhongSpecularBRDF(glm::vec3 ks,float ns,BSDFType type=BSDFType::BlinnPhongSpecular):BSDF(type),Ks(ks),Ns(ns){}
+    
+    void evalBSDF( BSDFRecord& rec)const override{
+        glm::vec3 h=glm::normalize(rec.wi+rec.wo);
+
+        float cos_Ns=pow(h.z,Ns);
+        float temp=(Ns+2)*(0.5*srender::INV_PI)*cos_Ns;
+        float coef=0.25/(glm::dot(rec.wo,h));
+
+        rec.bsdf_val=Ks*temp*coef;
+        rec.pdf=temp*h.z*coef;
+    }
+
+    void sampleBSDF(BSDFRecord& bsdfRec)const override{
+        // sample the pdf,get wi
+        glm::vec2 uniform=bsdfRec.sampler.getSample2D();
+        float costheta=pow(uniform[0],1.0/(Ns+2));
+        float theta=acos(costheta);
+        float phi=2*srender::PI*uniform[1];
+        glm::vec3 h=polar2Cartesian(theta,phi);
+
+        bsdfRec.wi=getReflect(h,bsdfRec.wo);
+        if(bsdfRec.wi.z<0.f){
+            bsdfRec.pdf=0.f;
+            return;
+        }
+        bsdfRec.costheta=bsdfRec.wi.z;
+
+        float cos_Ns=pow(h.z,Ns);
+        float temp=(Ns+2)*(0.5*srender::INV_PI)*cos_Ns;
+        float coef=0.25/(glm::dot(bsdfRec.wo,h));
+
+        bsdfRec.bsdf_val=sqrt(Ks)*temp*coef;    // I use sqrt(ks) to strengthen reflection part, but not sure whether this is acceptable or not
+        bsdfRec.pdf=temp*h.z*coef;
+        
+    }
+
+    float getWeight()const override{
+        return Ks[0]+Ks[1]+Ks[2];
+    }
+
+private:
+    glm::vec3 getReflect(const glm::vec3& h,const glm::vec3& wo)const{
+        auto wi=2*glm::dot(wo,h)*h-wo;
+        assert(fabs(glm::length(wi)-1)<srender::EPSILON);   // wi should be normalized by nature
+        return wi;
+    }
+
+    glm::vec3 Ks;
+    float Ns;
+};

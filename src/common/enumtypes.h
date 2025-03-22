@@ -87,5 +87,6 @@ enum class BSDFType{
     BSDFLIST            = 0,
     LambertReflection   = 1<<0,
     PerfectReflection   = 1<<1,
+    BlinnPhongSpecular  = 1<<2,
 
 };
