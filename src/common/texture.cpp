@@ -57,10 +57,17 @@ void Texture::loadFromFile(std::string filename){
     stbi_set_flip_vertically_on_load(1);
     data_=stbi_load(filename.c_str(),&width_,&height_,&channel,channel_num_);
     if(!data_){
-        std::cout<<"Failed to load texture: "<<filename<<",please check the file path of this texture.\n";
+        std::cout<<"Try to search from the upper level directory..."<<std::endl;
+        filename = "../"+filename;
+        data_=stbi_load(filename.c_str(),&width_,&height_,&channel,channel_num_);
+        if(!data_){
+            std::cout<<"Failed to load texture: "<<filename<<",please check the file path of this texture.\n";
+        }
     }
-    else{
+
+    if(data_){
         std::cout<<"Successfully load Texture: "<<filename<<".\n";
     }
+    
     pnum_=width_*height_;
 }

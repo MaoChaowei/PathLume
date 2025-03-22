@@ -26,7 +26,9 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
     }
     else if (name == "Bunny_with_wall")
     {
-        setCamera({-30, 20, -100}, {0, 0, -200}, {1, 0, 0},60,1024/800,1024,1,500);
+        glm::vec3 pos(31,-85,-551);//(-309, 28, -296);
+        glm::vec3 lookat(31,-85,-600);//(0, -100, -500);
+        setCamera(pos, lookat, glm::cross(lookat-pos,glm::vec3(0,1,0)),60,1024/800,512,1,1000);
         {
             glm::vec3 model_position{0, -100, -400};
             glm::mat4 translation = glm::translate(glm::mat4(1.0f), model_position);
@@ -43,7 +45,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
             glm::mat4 model_matrix = translation * rotate * scale;
             addObjInstance(std::string("assets/model/Brickwall/brickwall.obj"), model_matrix, shader, false, false);
         }
-        {
+        if(0){
             glm::vec3 lightpos{100, 100, -200};
             glm::mat4 translation = glm::translate(glm::mat4(1.0f), lightpos);
             glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::normalize(glm::vec3(1.0f, 1.0f, 0.0f)));
@@ -222,7 +224,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
 
     // bind light material 
     for(auto& ins:this->scene_.getAllInstances()){
-        for(auto& mtl:ins.blas_->object_->getMtls()){
+        for(auto& mtl:ins->blas_->object_->getMtls()){
             if(lights_mtl.find(mtl->name_)!=lights_mtl.end()){
                 // set type and rgb
                 mtl->initEmissionType(MtlType::AreaLight,lights_mtl[mtl->name_]);

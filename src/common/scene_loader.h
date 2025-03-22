@@ -31,7 +31,7 @@ public:
         std::cout<<"buildTLAS Done\n";
     }
 
-    std::vector<ASInstance>& getAllInstances(){
+    std::vector<std::shared_ptr<ASInstance>>& getAllInstances(){
         if(tlas_->all_instances_.size())
             return tlas_->all_instances_;
         else{
@@ -65,7 +65,7 @@ public:
     void findAllEmitters(){
         emits_.clear();
         for(auto& inst:tlas_->all_instances_){
-            auto& obj=inst.blas_->object_;
+            auto& obj=inst->blas_->object_;
             auto& facenormal=obj->getFaceNorms();
 
             for(int face=0;face<obj->getFaceNum();++face){
@@ -73,7 +73,7 @@ public:
                 if(mtl&&mtl->isEmissive()){
                     for(int i=0;i<3;++i){
                         emits_.addEmitter(&obj->getOneVertex(face,0),&obj->getOneVertex(face,1),&obj->getOneVertex(face,2),
-                                          inst.modle_*glm::vec4(facenormal[face],0),
+                                          inst->modle_*glm::vec4(facenormal[face],0),
                                           mtl->radiance_rgb_);
                     }
                 }

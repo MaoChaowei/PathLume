@@ -1,16 +1,40 @@
 #include"hzb.h"
 
+unsigned int nextPowerOfTwo(unsigned int x) {
+    x--;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x++;
+    return x;
+}
+
 HZbuffer::HZbuffer(uint32_t w,uint32_t h){
-    assert(w%2==0&&h%2==0);
-    width_=w;
-    height_=h;
+
+    width_=nextPowerOfTwo(w);
+    height_=nextPowerOfTwo(h);
+
     fineset_level_=std::log2(std::min((int)width_,(int)height_))-1;
     hzb_.resize(fineset_level_+1);
+
+    int tWidth=width_;
+    int tHeight=height_;
     for(int i=fineset_level_;i>=0;--i){
-        hzb_[i].reSetBuffer(w,h);
-        w/=2;
-        h/=2;
+        hzb_[i].reSetBuffer(tWidth,tHeight);
+        tWidth/=2;
+        tHeight/=2;
     }
+    
+    for(int i=0;i<width_;++i){
+        for(int j=0;j<height_;++j){
+            if(i<w&&j<h) continue;
+            // set the extended area to NearZ
+            updateDepth(i,j,srender::NEAR_Z);
+        }
+    }
+
 }
 
 void HZbuffer::updateDepth(uint32_t x,uint32_t y,float depth){

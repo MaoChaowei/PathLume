@@ -12,6 +12,9 @@ void Camera::setCameraPos(glm::vec3 pos,glm::vec3 lookat,glm::vec3 right){
 	yaw_   = glm::degrees(atan2(front_.z, front_.x));
 	if (pitch_ > 89.0f)  pitch_ = 89.0f;
 	if (pitch_ < -89.0f) pitch_ = -89.0f;
+
+	// inform render to update view-matrix
+	update_view_flag_=true;
 }
 
 void Camera::setFrustrum(float fov,float near,float far)

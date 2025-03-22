@@ -14,7 +14,7 @@ class BSDF;
  */
 class IntersectRecord{
 public:
-    IntersectRecord():pos_(0.0),t_(srender::MAXFLOAT),normal_(0.0),material_(nullptr),as_node_({-1,-1}){}
+    IntersectRecord():pos_(0.0),t_(srender::MAXFLOAT),normal_(0.0),material_(nullptr),bvhnode_idx_(-1){}
 
     IntersectRecord& operator=(const IntersectRecord& inst);
 
@@ -39,10 +39,11 @@ public:
 
     std::shared_ptr<const Material> material_;  // to generate bsdf
 
-    struct{
-        int32_t tlas_node_idx_;
-        int32_t blas_node_idx_;
-    }as_node_;
+    // struct{
+    //     int32_t tlas_node_idx_;
+    //     int32_t blas_node_idx_;
+    // }as_node_;
+    int32_t bvhnode_idx_;
     
 };
 

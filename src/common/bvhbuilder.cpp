@@ -27,7 +27,7 @@ BVHbuilder::BVHbuilder(std::shared_ptr<ObjectDesc> obj,uint32_t leaf_size):nodes
 }
 
 // building bvh tree for TLAS
-BVHbuilder::BVHbuilder(const std::vector<ASInstance>& instances):nodes_(std::make_unique<std::vector<BVHnode>>()){
+BVHbuilder::BVHbuilder(const std::vector<std::shared_ptr<ASInstance>>& instances):nodes_(std::make_unique<std::vector<BVHnode>>()){
     leaf_size_=1;
     int num=instances.size();
     if(num<=0){
@@ -38,7 +38,7 @@ BVHbuilder::BVHbuilder(const std::vector<ASInstance>& instances):nodes_(std::mak
     pridices_.resize(num);
     for(int i=0;i<num;++i){
         pridices_[i]=i;
-        priboxes_.emplace_back(instances[i].worldBBox_);
+        priboxes_.emplace_back(instances[i]->worldBBox_);
     }
 
     buildBVH(0,num-1);

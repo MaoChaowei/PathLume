@@ -15,7 +15,7 @@ void Scene::addObjInstance_SpaceFriendly(std::string filename, glm::mat4& model,
         std::cout<<"Current face num: "<<face_num_<<std::endl;
     }
     // create ASInstance for obj
-    tlas_->all_instances_.emplace_back( blas_map_[filename],model,shader );
+    tlas_->all_instances_.emplace_back( std::make_shared<ASInstance>(blas_map_[filename],model,shader) );
 }
 
 // create BLAS for obj even if it has been built before.
@@ -32,7 +32,7 @@ void Scene::addObjInstance(std::string filename, glm::mat4& model,ShaderType sha
     std::cout<<"Current face num: "<<face_num_<<std::endl;
     
     // create ASInstance for obj
-    tlas_->all_instances_.emplace_back( blas,model,shader );
+    tlas_->all_instances_.emplace_back( std::make_shared<ASInstance>(blas,model,shader) );
 }
 
 
@@ -47,7 +47,7 @@ void Scene::clearScene(){
 // when leaf_num is changed, blas should be rebuilt.
 void Scene::rebuildBLAS(){
     for(auto& inst:tlas_->all_instances_){
-        auto object=inst.blas_->object_;
-        inst.blas_=std::make_shared<BLAS>(object,leaf_num_);
+        auto object=inst->blas_->object_;
+        inst->blas_=std::make_shared<BLAS>(object,leaf_num_);
     }
 }

@@ -36,7 +36,7 @@ public:
 public:
     std::shared_ptr<ObjectDesc> object_;
     //std::unique_ptr<std::vector<BVHnode>> tree_;                    // BVH in model space. node points to  primitives_indices_
-    std::unique_ptr<std::vector<uint32_t>> primitives_indices_;     // primitives_indices_ points to object_'s primitive
+    std::unique_ptr<std::vector<uint32_t>> primitives_indices_;     // BVHnode-->primitives_indices_-->object_'s face/primitive
 };
 
 struct PrimitiveHolder{         // because of the neccessity of clipping, each frame updates all the primitives of the instance.
@@ -88,16 +88,21 @@ public:
 
     void TLASupdateSBox();
 
-    
     void updateScreenBox(int32_t node_idx);
 
     bool traceRayInDetail(const Ray& ray,IntersectRecord& inst)const override;
     
+    /**
+     * @brief use bvh tree to locate a asinstance
+     */
+    // const ASInstance& locateASinstance(uint32_t BVHnodeIdx)const{
+    //     return all_instances_.at(element_indices_.at(BVHnodeIdx));
+    // }
 
 public:
-    std::vector<ASInstance> all_instances_;
+    std::vector<std::shared_ptr<ASInstance>> all_instances_;
     // std::unique_ptr<std::vector<BVHnode>> tree_;
-
+    // std::vector<uint32_t> element_indices_;     // BVHnode-->element_indices_-->all_instances_
     std::unique_ptr<std::vector<AABB3d>> tlas_sboxes_;
 
 };

@@ -538,6 +538,7 @@ void Window::showProfileReport(){
         ImGui::Text("Image Setting:");
         ImGui::Text("Width: %d Height: %d",render_->camera_.image_width_,render_->camera_.image_height_);
         ImGui::Text("Camera Pos: (%2.f,%2.f,%2.f)",render_->camera_.position_.x,render_->camera_.position_.y,render_->camera_.position_.z);
+        ImGui::Text("Camera Front: (%2.f,%2.f,%2.f)",render_->camera_.front_.x,render_->camera_.front_.y,render_->camera_.front_.z);
         ImGui::Text("Near Z: %2.f; Far Z: %2.f;",render_->camera_.near_flat_z_,render_->camera_.far_flat_z_);
 
         ImGui::Text("* Face(Triangle) Distribution");

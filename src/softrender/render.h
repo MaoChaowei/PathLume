@@ -115,7 +115,7 @@ private:
     void drawTriangleScanLine();
 
     void traverseBVHandDraw(const std::vector<BVHnode>& tree,uint32_t nodeIdx,bool is_TLAS,const glm::mat4& model=glm::mat4(1.0));
-    void DfsTlas_BVHwithHZB(const std::vector<BVHnode>& tree,std::vector<AABB3d> &tlas_sboxes,const std::vector<ASInstance>& instances,uint32_t nodeIdx);
+    void DfsTlas_BVHwithHZB(const std::vector<BVHnode>& tree,std::vector<AABB3d> &tlas_sboxes,const std::vector<std::shared_ptr<ASInstance>>& instances,uint32_t nodeIdx);
     void DfsBlas_BVHwithHZB(const ASInstance& inst,int32_t nodeIdx);
 
 

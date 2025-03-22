@@ -9,7 +9,8 @@ IntersectRecord& IntersectRecord::operator=(const IntersectRecord& inst){
     t_=inst.t_;
     normal_=inst.normal_;
     material_=inst.material_;
-    as_node_=inst.as_node_;
+    // as_node_=inst.as_node_;
+    bvhnode_idx_=inst.bvhnode_idx_;
 
     return *this;
 }
@@ -35,7 +36,7 @@ std::shared_ptr<BSDF> IntersectRecord::getBSDF(){
     }
     else if(type==MtlType::Glossy){
         auto list=std::make_shared<BSDFlist>();
-        // list->insertBSDF(std::make_shared<LambertBRDF>(material_->diffuse_));
+        list->insertBSDF(std::make_shared<LambertBRDF>(material_->diffuse_));
         // list->insertBSDF(std::make_shared<SpecularBRDF>(material_->specular_));
         list->insertBSDF(std::make_shared<BPhongSpecularBRDF>(material_->specular_,material_->shininess_));
         list->initWeights();

@@ -109,6 +109,9 @@ public:
 
             /*-----------------------  Emission ------------------------*/
             auto& mtl=inst->material_;
+            if(!mtl){
+                throw std::runtime_error("Li(const Ray ray,PathTraceRecord& pRecord): the hit point doesn't own a material!");
+            }
             // Attention:  Only consider self-emssion for the first intersection, 
             // because the following bounces are considered only in the term of "Indirect Light"
             if((int)(mtl->type_&MtlType::Emissive)&&pRecord.curdepth==1){

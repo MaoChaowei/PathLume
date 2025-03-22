@@ -17,6 +17,7 @@ void Render::updateMatrix()
     mat_view_ = camera_.getViewMatrix();
     mat_perspective_ = camera_.getPerspectiveMatrix();
     mat_viewport_ = camera_.getViewportMatrix();
+
 }
 
 void Render::addObjInstance(std::string filename, glm::mat4 &model, ShaderType shader, bool flipn, bool backculling)
@@ -30,13 +31,10 @@ void Render::pipelineInit()
     // get default setting_
     initRenderIoInfo();
 
-    // 0. load scene and camera setting
+    // 1. load scene and camera setting
     loadDemoScene(info_.raster_setting_.scene_filename, info_.raster_setting_.shader_type);
     setBVHLeafSize(info_.raster_setting_.bvh_leaf_num);
     scene_.buildTLAS();
-
-    // // 1. init transformation
-    // updateMatrix();
 
     // 2. init shader
     sdptr_ = std::make_shared<Shader>();
@@ -44,12 +42,9 @@ void Render::pipelineInit()
 
     // 3. init rastertizer
     tri_scanliner_ = std::make_shared<ScanLine::PerTriangleScanLiner>(box2d_, colorbuffer_, zbuffer_, sdptr_);
+ 
+    hzb_ = std::make_shared<HZbuffer>(camera_.getImageWidth(), camera_.getImageHeight());
 
-    if (info_.raster_setting_.rasterize_type == RasterizeType::Easy_hzb ||
-        info_.raster_setting_.rasterize_type == RasterizeType::Bvh_hzb)
-    {
-        hzb_ = std::make_shared<HZbuffer>(camera_.getImageWidth(), camera_.getImageHeight());
-    }
 
     is_init_ = true;
 }
@@ -225,26 +220,31 @@ void Render::pipelineBegin()
         return;
     }
     // update the scene or render accorrding to the setting(modified by ImGui)
-    if (info_.raster_setting_.scene_change == true)
+    auto setting=info_.raster_setting_;
+    if (setting.scene_change == true)
     {
-        loadDemoScene(info_.raster_setting_.scene_filename, info_.raster_setting_.shader_type);
+        // update scene
+        loadDemoScene(setting.scene_filename,setting.shader_type);
+        // update bvh
         scene_.buildTLAS();
+        // update zbuffer
+        hzb_ = std::make_shared<HZbuffer>(camera_.getImageWidth(), camera_.getImageHeight());
     }
-    if (info_.raster_setting_.shader_change == true)
+    if (setting.shader_change == true)
     {
         for (auto &inst : scene_.getAllInstances())
         {
-            if (inst.shader_ != ShaderType::Light)
-                inst.shader_ = info_.raster_setting_.shader_type;
+            if (inst->shader_ != ShaderType::Light)
+                inst->shader_ = setting.shader_type;
         }
     }
-    if (info_.raster_setting_.rasterize_change == true)
+    if (setting.rasterize_change == true)
     {
         info_.rasterize_timer_.clear(); // each rasterize technique has different stages
     }
-    if (info_.raster_setting_.leaf_num_change == true)
+    if (setting.leaf_num_change == true)
     {
-        setBVHLeafSize(info_.raster_setting_.bvh_leaf_num);
+        setBVHLeafSize(setting.bvh_leaf_num);
         scene_.rebuildBLAS();
     }
     // update the camera if moved
@@ -257,7 +257,7 @@ void Render::pipelineBegin()
     sdptr_->setFrustum(camera_.getNear(), camera_.getFar());
 
     // The pipeline happens here
-    if (info_.raster_setting_.rasterize_type == RasterizeType::Bvh_hzb)
+    if (setting.rasterize_type == RasterizeType::Bvh_hzb)
     {
         pipelineHZB_BVH();
     }
@@ -267,15 +267,15 @@ void Render::pipelineBegin()
     }
 
     // show bvh structure
-    if (info_.raster_setting_.show_tlas)
+    if (setting.show_tlas)
     {
         showTLAS();
     }
-    else if (info_.raster_setting_.show_blas)
+    else if (setting.show_blas)
     {
         auto &asinstances = scene_.getAllInstances();
         for (auto &ins : asinstances)
-            showBLAS(ins);
+            showBLAS(*ins);
     }
 
     // calculate hzb_culled_face_num_
@@ -291,11 +291,11 @@ void Render::pipelineGeometryPhase()
 {
 
     auto &asinstances = scene_.getAllInstances();
-    for (auto &ins : asinstances)
+    for (auto ins : asinstances)
     {
 
-        auto &obj = ins.blas_->object_;
-        auto &mat_model = ins.modle_;
+        auto &obj = ins->blas_->object_;
+        auto &mat_model = ins->modle_;
 
         // init vertex shader
         glm::mat4 mvp = mat_perspective_ * mat_view_ * mat_model;
@@ -313,10 +313,10 @@ void Render::pipelineGeometryPhase()
 
         // culling
 
-        cullingTriangleInstance(ins, normal_mat);
+        cullingTriangleInstance(*ins, normal_mat);
 
         // clip space => NDC => screen space
-        for (auto &newv : *ins.vertices_)
+        for (auto &newv : *(ins->vertices_))
         {
             sdptr_->vertex2Screen(newv);
         }
@@ -352,19 +352,18 @@ void Render::pipelineRasterizePhasePerInstance()
 
     // put each instance into the pipeline.
     auto &asinstances = scene_.getAllInstances();
-    for (auto &ins : asinstances)
+    for (auto ins : asinstances)
     {
-
-        auto &obj = ins.blas_->object_;
+        auto &obj = ins->blas_->object_;
         auto otype = obj->getPrimitiveType();
         auto &objmtls = obj->getMtls();
 
-        auto &objvertices = *ins.vertices_;
+        auto &objvertices = *ins->vertices_;
         // auto& objmtlidx=*ins.mtlidx_;
-        auto &primitive_buffer = *ins.primitives_buffer_;
+        auto &primitive_buffer = *ins->primitives_buffer_;
 
         // init shader for the current instance
-        sdptr_->setShaderType(ins.shader_);
+        sdptr_->setShaderType(ins->shader_);
         sdptr_->setPrimitiveType(otype);
 
         // for each primitive
@@ -495,7 +494,7 @@ void Render::pipelineRasterizePhaseHZB_BVH()
 #endif
 }
 
-void Render::DfsTlas_BVHwithHZB(const std::vector<BVHnode> &tree, std::vector<AABB3d> &tlas_sboxes, const std::vector<ASInstance> &instances, uint32_t nodeIdx)
+void Render::DfsTlas_BVHwithHZB(const std::vector<BVHnode> &tree, std::vector<AABB3d> &tlas_sboxes, const std::vector<std::shared_ptr<ASInstance>>& instances, uint32_t nodeIdx)
 {
 
     if (nodeIdx >= tree.size())
@@ -532,13 +531,13 @@ void Render::DfsTlas_BVHwithHZB(const std::vector<BVHnode> &tree, std::vector<AA
     else if (node.left == -1 && node.right == -1)
     {
         auto &inst = instances[node.prmitive_start];
-        auto otype = inst.blas_->object_->getPrimitiveType();
+        auto otype = inst->blas_->object_->getPrimitiveType();
 
-        sdptr_->setShaderType(inst.shader_);
+        sdptr_->setShaderType(inst->shader_);
         sdptr_->setPrimitiveType(otype);
         assert(otype == PrimitiveType::MESH);
 
-        DfsBlas_BVHwithHZB(inst, 0);
+        DfsBlas_BVHwithHZB(*inst, 0);
     }
     else if (node.left == -1 && node.right != -1)
     {
@@ -735,7 +734,7 @@ void Render::traverseBVHandDraw(const std::vector<BVHnode> &tree, uint32_t nodeI
         {
             auto &tlas = scene_.getTLAS();
             uint32_t idx = node.prmitive_start;
-            showBLAS(tlas.all_instances_[idx]);
+            showBLAS(*(tlas.all_instances_.at(idx)));
         }
     }
 
@@ -885,7 +884,7 @@ void Render::initRenderIoInfo()
     info_.profile_report = true;
 
     // rasterizer
-    info_.raster_setting_.scene_filename = "veach-mis";// cornell-box // veach-mis
+    info_.raster_setting_.scene_filename = "Bunny_with_wall";// cornell-box // veach-mis // Bunny_with_wall
     info_.raster_setting_.bvh_leaf_num = 12;
     info_.raster_setting_.back_culling = true;
     info_.raster_setting_.earlyz_test = true;
@@ -897,7 +896,7 @@ void Render::initRenderIoInfo()
     // path tracer
     info_.tracer_setting_.filename_=info_.raster_setting_.scene_filename;
     info_.tracer_setting_.filepath_="./";
-    info_.tracer_setting_.max_depth_=2;
+    info_.tracer_setting_.max_depth_=1;
     info_.tracer_setting_.spp_=1;
     info_.tracer_setting_.tiles_num_=1;
 }

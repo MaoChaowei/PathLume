@@ -18,7 +18,11 @@ public:
     Tile(uint32_t idx,Film* film,glm::vec2 pnum,glm::vec2 px_offset,glm::vec3 up_lt,std::shared_ptr<ColorBuffer> buffer,
         const Scene* scene,std::shared_ptr<PathTracer>pathtracer,const RTracingSetting& setting)
         :tile_idx_(idx),film_(film),pixels_num_(pnum),first_pixel_offset_(px_offset),up_lt_pos_(up_lt),shared_buffer_(buffer),
-        scene_(scene),tracer_(pathtracer),setting_(setting){}
+        scene_(scene),tracer_(pathtracer),setting_(setting){
+            if(!film||!scene||!pathtracer){
+                throw std::runtime_error("Tile Constructor: invalid pointer!");
+            }
+        }
 
     void render();
     void setPixel(const uint32_t x,const uint32_t y,const glm::vec4& linear_color);

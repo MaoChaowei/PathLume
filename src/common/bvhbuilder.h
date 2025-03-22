@@ -65,7 +65,7 @@ public:
     BVHbuilder(std::shared_ptr<ObjectDesc> obj,uint32_t leaf_size);
 
     // building bvh tree for TLAS
-    BVHbuilder(const std::vector<ASInstance>& instances);
+    BVHbuilder(const std::vector<std::shared_ptr<ASInstance>>& instances);
 
     // building implemention
     int buildBVH(uint32_t start,uint32_t end);

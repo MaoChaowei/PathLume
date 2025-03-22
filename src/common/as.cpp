@@ -10,7 +10,7 @@
 */
 bool AccelStruct::traceRayInAccel(const Ray& ray,int32_t node_idx,IntersectRecord& inst,bool is_tlas)const{
    assert(node_idx>=0&&node_idx<tree_->size());
-
+    // optimize direction: put box hit test outside as a sort of guidance
    if(!tree_->at(node_idx).anyHit(ray))
        return false;
     
@@ -20,15 +20,14 @@ bool AccelStruct::traceRayInAccel(const Ray& ray,int32_t node_idx,IntersectRecor
     // reach leaf node, go down to next level
     if(left==-1&&right==-1){
 
-        if(is_tlas) inst.as_node_.tlas_node_idx_=node_idx;
-        else inst.as_node_.blas_node_idx_=node_idx;
-        
+        inst.bvhnode_idx_=node_idx;
         return traceRayInDetail(ray,inst);
     }
     assert(left!=-1&&right!=-1);
 
     IntersectRecord left_hit,right_hit;
 
+    
     bool flag_lt=traceRayInAccel(ray,left,left_hit,is_tlas);
     bool flag_rt=traceRayInAccel(ray,right,right_hit,is_tlas);
 
@@ -46,11 +45,7 @@ bool AccelStruct::traceRayInAccel(const Ray& ray,int32_t node_idx,IntersectRecor
     // else{
     //     return false;
     // }
-
-    // return true;
-
-    left_hit.as_node_.tlas_node_idx_=right_hit.as_node_.tlas_node_idx_=node_idx;
-    left_hit.as_node_.blas_node_idx_=right_hit.as_node_.blas_node_idx_=node_idx;   
+    // return true;  
 
     if(flag_lt||flag_rt){
         inst=left_hit.t_<right_hit.t_?left_hit:right_hit;
@@ -69,7 +64,8 @@ bool AccelStruct::traceRayInAccel(const Ray& ray,int32_t node_idx,IntersectRecor
 bool BLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
 
     bool hitted=false;
-    int id=inst.as_node_.blas_node_idx_;
+
+    int id=inst.bvhnode_idx_;
     BVHnode& node=tree_->at(id);
     auto& vertices=object_->getVertices();
     auto& indices=object_->getIndices();
@@ -99,8 +95,8 @@ bool BLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
  */
 bool TLAS::traceRayInDetail(const Ray& ray,IntersectRecord& inst)const{
     // find asinstance
-    auto& node=tree_->at(inst.as_node_.tlas_node_idx_);
-    auto& instance=all_instances_[node.prmitive_start];
+    auto& node=tree_->at(inst.bvhnode_idx_);
+    auto& instance=*all_instances_.at(node.prmitive_start);
 
     // transform ray into model's space
     auto mat_inv=instance.inv_modle_;
@@ -188,17 +184,30 @@ void ASInstance::updateScreenBox(int32_t node_idx,std::vector<BVHnode>&blas_tree
 
 
 void TLAS::buildTLAS(){
+
     if(all_instances_.size()){
         BVHbuilder builder(all_instances_);
         tree_=builder.moveNodes();
+        std::vector<uint32_t> element_indices_=builder.getPridices();
+
+        // sort all_instances by the order in element_indices
+        // FROM: bvhnodeIdx-->element_indices_-->all_instances_
+        // TO:   bvhnodeIdx-->all_instances_
+        assert(element_indices_.size()==all_instances_.size());
+        std::vector<std::shared_ptr<ASInstance>> temp;
+        for(int i=0;i<element_indices_.size();++i){
+            temp.emplace_back(all_instances_[element_indices_[i]]);
+        }
+        all_instances_=temp;
     }
+
     tlas_sboxes_->resize(tree_->size());
 }
 
 void TLAS::TLASupdateSBox(){
     for(auto& inst:all_instances_){
-        inst.BLASupdateSBox();
-        auto& blas_sbox=inst.blas_sboxes_->at(0);
+        inst->BLASupdateSBox();
+        auto& blas_sbox=inst->blas_sboxes_->at(0);
     }
     updateScreenBox(0);
 }
@@ -212,7 +221,8 @@ void TLAS::updateScreenBox(int32_t node_idx){
 
     if(left_idx==-1&&right_idx==-1){
         int st=tree_->at(node_idx).prmitive_start;
-        sbox=all_instances_[st].blas_sboxes_->at(0);
+        auto& instance=*all_instances_.at(st);
+        sbox=instance.blas_sboxes_->at(0);
         return;
     }
 
