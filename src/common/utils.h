@@ -54,9 +54,9 @@ void DebugLog(const std::string& format, Args&&... args)
     }
 }
 
-// inline float getLuminance(const glm::vec3 radiance_rgb){
-//     return (0.2126*radiance_rgb.r + 0.7152*radiance_rgb.g + 0.0722*radiance_rgb.b);
-// }
+inline float getLuminance(const glm::vec3 radiance_rgb){
+    return (0.2126*radiance_rgb.r + 0.7152*radiance_rgb.g + 0.0722*radiance_rgb.b);
+}
 
 }
 

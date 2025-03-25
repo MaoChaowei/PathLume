@@ -7,13 +7,18 @@
 #include"bsdf.h"
 #include<mutex>
 
+/**
+ * @brief Encapsulate all the necessary infos for tracing a light in a scene
+ * 
+ */
 struct PathTraceRecord{
-    PathTraceRecord(const Scene& sce,Sampler& sam):scene(sce),sampler(sam),curdepth(0){}
+    PathTraceRecord(const Scene& sce,Sampler& sam,uint32_t lightsplit):scene(sce),sampler(sam),curdepth(0),light_split(lightsplit){}
 
     const Scene& scene;
     Sampler& sampler;
 
     int curdepth;
+    int light_split;
 };
 
 /**
@@ -57,22 +62,6 @@ public:
         return color;
     }
 
-    // virtual glm::vec3 Li(const Ray ray,PathTraceRecord& pRecord){
-    //     const Scene& scene=pRecord.scene;
-    //     // DEBUG
-    //     glm::vec3 pos(0.00100000005,0,110.722168);
-    //     glm::vec3 dir (0.426882207,-0.460986465,0.777986526);
-    //     Ray sr(pos,dir);
-    //     std::shared_ptr<IntersectRecord> inst=traceRay(sr,&scene);
-    //     if(!inst)   return glm::vec3(0.f);
-
-    //     auto bsdf=inst->getBSDF(BSDFType::LambertReflection);
-    //     glm::vec3 color = (inst->normal_ * 0.5f + 0.5f);
-
-    //     return color;
-    // }
-
-
 
 };
 
@@ -100,7 +89,7 @@ public:
         // Trace the current ray
         std::shared_ptr<IntersectRecord> inst=traceRay(curRay,&scene);
         if(!inst){
-            radiance+=glm::vec3(0.f);//I can possibly use an environment map.
+            radiance+=glm::vec3(0.f);// could be an environment map 
             return radiance;
         }
 
@@ -118,43 +107,51 @@ public:
                 radiance+=throughput*mtl->getEmit();
             }
 
-            /*-----------------------Sample Direct Light------------------------*/
 
             auto bsdf=inst->getBSDF();
-        
+            bool pure_specular=(bool)(mtl->type_==MtlType::Specular);
+
+            /*-----------------------Sample Direct Light------------------------*/
             // Sampling a Direct Light
-            LightSampleRecord lsRec;
-            glm::vec3 adjust_pos=inst->pos_+inst->normal_*(float)(0.001);    //prevent from self-intersection
-            scene.sampleEmitters(adjust_pos,lsRec,sampler);  
+            glm::vec3 direct(0.f);
+            int t=pRecord.light_split;
+            while(!pure_specular&&t--){
+                LightSampleRecord lsRec;
+                glm::vec3 adjust_pos=inst->pos_+inst->normal_*(float)(0.001);    //prevent from self-intersection
+                scene.sampleEmitters(adjust_pos,lsRec,sampler);  
 
-            // Trace a Shadow Ray
-            if(lsRec.shadow_ray_){ // if got a valid shadow ray, test its visibility
+                // Trace a Shadow Ray
+                if(lsRec.shadow_ray_){ 
 
-                std::shared_ptr<IntersectRecord> light_inst=traceRay(*lsRec.shadow_ray_,&scene);
-                // if visible, update radiance
-                if(light_inst&&fabs(light_inst->t_-lsRec.dist_)<lsRec.dist_*0.01){
-                    
-                    glm::vec3 wo=inst->ray2TangentSpace(-curRay.dir_);
-                    glm::vec3 wi=inst->ray2TangentSpace(lsRec.shadow_ray_->dir_);
+                    std::shared_ptr<IntersectRecord> light_inst=traceRay(*lsRec.shadow_ray_,&scene);
+                    // if visible, update radiance
+                    if(light_inst&&fabs(light_inst->t_-lsRec.dist_)<lsRec.dist_*0.01){
+                        
+                        glm::vec3 wo=inst->ray2TangentSpace(-curRay.dir_);
+                        glm::vec3 wi=inst->ray2TangentSpace(lsRec.shadow_ray_->dir_);
 
-                    BSDFRecord bsdfRec(*inst,sampler,wo,wi);
-                    bsdf->evalBSDF(bsdfRec);
-                    float cosTheta = std::max(0.f, wi.z);
+                        BSDFRecord bsdfRec(*inst,sampler,wo,wi);
+                        bsdf->evalBSDF(bsdfRec);
+                        float cosTheta = std::max(0.f, wi.z);
 
-                    // calculate MIS weight
-                    float weight=getMISweight(lsRec.pdf_,bsdfRec.pdf);
-                    if(isnan(weight)){
-                        throw std::runtime_error("isnan(weight)");
+                        // calculate MIS weight
+                        float weight=getMISweight(lsRec.pdf_,bsdfRec.pdf);
+                        if(isnan(weight)){
+                            throw std::runtime_error("isnan(weight)");
+                        }
+
+                        direct+=throughput*bsdfRec.bsdf_val*lsRec.value_*cosTheta*weight;
                     }
-
-                    radiance+=throughput*bsdfRec.bsdf_val*lsRec.value_*cosTheta*weight;
                 }
             }
+            radiance+=direct/float(pRecord.light_split);
+            
 
              /*-----------------------Sample BSDF------------------------*/
 
             BSDFRecord bsdfRec(*inst,sampler,-curRay.dir_);
             bsdf->sampleBSDF(bsdfRec);
+            bsdf->evalBSDF(bsdfRec);
             if(!bsdfRec.isValid())// If bsdf value or pdf is too small, this path would gain us little benefit. 
                 break;
             
@@ -172,7 +169,7 @@ public:
              if((int)(inst->material_->type_&MtlType::Emissive)){
                 auto Li=inst->material_->radiance_rgb_;
                 float light_prob=scene.getLightPDF(curRay,*inst);
-                float weight= getMISweight(bsdfRec.pdf,light_prob);
+                float weight= pure_specular?1.0:getMISweight(bsdfRec.pdf,light_prob);
                 if(isnan(weight)){
                     throw std::runtime_error("isnan(weight)");
                 }
@@ -245,6 +242,9 @@ public:
 
             /*-----------------------  Emission ------------------------*/
             auto& mtl=inst->material_;
+            if(!mtl){
+                throw std::runtime_error("Li(const Ray ray,PathTraceRecord& pRecord): the hit point doesn't own a material!");
+            }
             // Attention:  Only consider self-emssion for the first intersection, 
             // because the following bounces are considered only in the term of "Indirect Light"
             if((int)(mtl->type_&MtlType::Emissive)&&pRecord.curdepth==1){
@@ -259,7 +259,7 @@ public:
             LightSampleRecord lsRec;
             glm::vec3 adjust_pos=inst->pos_+inst->normal_*(float)(0.001);    //prevent from self-intersection
             scene.sampleEmitters(adjust_pos,lsRec,sampler);  
-
+            
             // Trace a Shadow Ray
             if(lsRec.shadow_ray_){ // if got a valid shadow ray, test its visibility
 
@@ -272,9 +272,11 @@ public:
 
                     BSDFRecord bsdfRec(*inst,sampler,wo,wi);
                     bsdf->evalBSDF(bsdfRec);
-                    float cosTheta = std::max(0.f, wi.z);
+                    float cosTheta = glm::dot(lsRec.shadow_ray_->dir_,inst->normal_);//std::max(0.f, wi.z);
 
-                    radiance+=throughput*bsdfRec.bsdf_val*lsRec.value_*cosTheta;
+                    // radiance+=throughput*bsdfRec.bsdf_val*lsRec.value_*cosTheta;
+                    radiance+=throughput*mtl->diffuse_/srender::PI *lsRec.value_*cosTheta;
+                    
                 }
             }
 
@@ -283,6 +285,7 @@ public:
             if(max_depth_<=0||pRecord.curdepth<max_depth_){
                 BSDFRecord bsdfRec(*inst,sampler,-curRay.dir_);
                 bsdf->sampleBSDF(bsdfRec);
+                bsdf->evalBSDF(bsdfRec);
                 if(!bsdfRec.isValid())// If bsdf value or pdf is too small, this path would gain us little benefit. 
                     break;
                 

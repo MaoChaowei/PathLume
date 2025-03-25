@@ -58,37 +58,7 @@ public:
     bool backCulling(const glm::vec3& face_norm,const glm::vec3& dir)const;
 
     // PATH TRACING 
-    void startPathTracer(){
-
-        info_.pathtracer_timer_.clear();
-        info_.pathtracer_timer_.start("001.PreProcess");
-
-        // preprocess: 
-        // 1.create film and tiles
-        std::shared_ptr<Film> film=camera_.getNewFilm();
-        film->initTiles(info_.tracer_setting_,colorbuffer_,&scene_);
-        // 2.make sure: world position and emitters are prepared
-        scene_.findAllEmitters();
-
-        info_.pathtracer_timer_.stop("001.PreProcess");
-        info_.pathtracer_timer_.start("002.Rendering");
-
-        // rendering
-        int thread_num=film->parallelTiles();
-
-        info_.pathtracer_timer_.stop("002.Rendering");
-
-        // write to file
-        auto pathinfo=info_.tracer_setting_;
-
-        colorbuffer_->saveToImage(pathinfo.filename_    \
-                    +"_S"+std::to_string(pathinfo.spp_) \
-                    +"_D"+std::to_string(pathinfo.max_depth_)   \
-                    +"_T"+std::to_string(info_.pathtracer_timer_.getElapsedTime("002.Rendering"))   \
-                    +"_C"+std::to_string(thread_num) \
-                    +".png");
-        
-    }
+    void startPathTracer();
 
 
     // INTERFACE

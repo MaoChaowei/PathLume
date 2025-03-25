@@ -25,6 +25,8 @@ namespace srender{
     
 // 定义浮点数比较的容差
 constexpr float EPSILON = 1e-6f;
+constexpr float AABBOX_EPS=0.001;
+
 constexpr int INF = 2147483647;
 constexpr float NEAR_Z=-1;
 constexpr float FAR_Z=1;

@@ -42,6 +42,7 @@ struct AABB2d{
 struct AABB3d{
     glm::vec3 min;
     glm::vec3 max;
+
     AABB3d():min(srender::INF,srender::INF,srender::INF),max(-srender::INF,-srender::INF,-srender::INF){}
     AABB3d(const glm::vec3& p1,const glm::vec3& p2,const glm::vec3& p3){
         min.x=std::min(std::min(p1.x,p2.x),p3.x);
@@ -107,9 +108,10 @@ struct AABB3d{
     }
 
     // add some safty distance
-    void enlargeEpsilon(){
-        min-=1e-5;
-        max+=1e-5;
+    void enlargeEpsilon(float epsilon){
+        epsilon=fabs(epsilon);
+        min-=epsilon;
+        max+=epsilon;
     }
 
     AABB3d transform(const glm::mat4& m){

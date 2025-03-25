@@ -29,6 +29,7 @@ std::shared_ptr<BSDF> IntersectRecord::getBSDF(){
 
     // test scattering bits
     if(type==MtlType::Diffuse){
+        
         bsdf_=std::make_shared<LambertBRDF>(material_->diffuse_);
     }
     else if(type==MtlType::Specular){
@@ -39,6 +40,7 @@ std::shared_ptr<BSDF> IntersectRecord::getBSDF(){
         list->insertBSDF(std::make_shared<LambertBRDF>(material_->diffuse_));
         // list->insertBSDF(std::make_shared<SpecularBRDF>(material_->specular_));
         list->insertBSDF(std::make_shared<BPhongSpecularBRDF>(material_->specular_,material_->shininess_));
+
         list->initWeights();
 
         bsdf_=list;
@@ -47,6 +49,7 @@ std::shared_ptr<BSDF> IntersectRecord::getBSDF(){
         bsdf_=std::make_shared<LambertBRDF>(material_->diffuse_);
         // std::cout<<"IntersectRecord::getBSDF():Unknown MtlType "<<material_->getName()<<", Set to Diffuse\n";
     }
+    // bsdf_=std::make_shared<BPhongSpecularBRDF>(material_->specular_,material_->shininess_);
     return bsdf_;
 }
 

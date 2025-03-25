@@ -11,6 +11,30 @@ Render::Render() : camera_(), colorbuffer_(std::make_shared<ColorBuffer>(camera_
     box3d_.max = {camera_.getImageWidth() - 1, camera_.getImageHeight() - 1, 1};
 }
 
+void Render::initRenderIoInfo()
+{
+    info_.begin_path_tracing=false;
+    info_.profile_report = true;
+
+    // rasterizer
+    info_.raster_setting_.scene_filename = "hit_test";// cornell-box // veach-mis // Bunny_with_wall
+    info_.raster_setting_.bvh_leaf_num = 12;
+    info_.raster_setting_.back_culling = true;
+    info_.raster_setting_.earlyz_test = true;
+    info_.raster_setting_.rasterize_type = RasterizeType::Naive;
+    info_.raster_setting_.show_tlas = false;
+    info_.raster_setting_.show_blas = false;
+    info_.raster_setting_.shader_type = ShaderType::Normal;
+
+    // path tracer
+    info_.tracer_setting_.filename_=info_.raster_setting_.scene_filename;
+    info_.tracer_setting_.filepath_="./";
+    info_.tracer_setting_.max_depth_=1;
+    info_.tracer_setting_.spp_=1;
+    info_.tracer_setting_.tiles_num_=1;
+    info_.tracer_setting_.light_split_=1;
+}
+
 // once change camera property, we need to update VPV-matrix accordingly
 void Render::updateMatrix()
 {
@@ -35,6 +59,7 @@ void Render::pipelineInit()
     loadDemoScene(info_.raster_setting_.scene_filename, info_.raster_setting_.shader_type);
     setBVHLeafSize(info_.raster_setting_.bvh_leaf_num);
     scene_.buildTLAS();
+    camera_.setMovement(scene_.getSceneScale());
 
     // 2. init shader
     sdptr_ = std::make_shared<Shader>();
@@ -47,6 +72,38 @@ void Render::pipelineInit()
 
 
     is_init_ = true;
+}
+
+
+void Render::startPathTracer(){
+
+    // preprocess: 
+    // 1.create film and tiles
+    std::shared_ptr<Film> film=camera_.getNewFilm();
+    film->initTiles(info_.tracer_setting_,colorbuffer_,&scene_);
+    // 2.make sure: world position and emitters are prepared
+    scene_.findAllEmitters();
+
+    CPUTimer timer;
+    timer.start("Rendering");
+
+    // rendering
+    int thread_num=film->parallelTiles();
+
+    timer.stop("Rendering");
+    info_.tracer_setting_.render_time_=timer.getElapsedTime("Rendering");
+
+    // write to file
+    auto pathinfo=info_.tracer_setting_;
+
+    colorbuffer_->saveToImage(pathinfo.filename_    \
+                +"_S"+std::to_string(pathinfo.spp_) \
+                +"_L"+std::to_string(info_.tracer_setting_.light_split_)    \
+                +"_D"+std::to_string(pathinfo.max_depth_)   \
+                +"_T"+std::to_string(info_.tracer_setting_.render_time_)   \
+                +"_C"+std::to_string(thread_num) \
+                +".png");
+    
 }
 
 // drawLine in screen space
@@ -229,6 +286,8 @@ void Render::pipelineBegin()
         scene_.buildTLAS();
         // update zbuffer
         hzb_ = std::make_shared<HZbuffer>(camera_.getImageWidth(), camera_.getImageHeight());
+        // update camera movement arguments
+        camera_.setMovement(scene_.getSceneScale());
     }
     if (setting.shader_change == true)
     {
@@ -409,39 +468,6 @@ void Render::pipelineRasterizePhasePerInstance()
     } // end of for-asinstances
 }
 
-/*
-bool Render::mapWorldBox2ScreenBox(const BVHnode& node,const glm::mat4& transition,AABB3d& sbox){
-    glm::vec3 bmin=node.bbox.min;
-    glm::vec3 bmax=node.bbox.max;
-    std::vector<glm::vec3> bboxpoints={bmin,{bmin.x,bmin.y,bmax.z},{bmin.x,bmax.y,bmax.z},{bmin.x,bmax.y,bmin.z},
-                        {bmax.x,bmin.y,bmin.z},{bmax.x,bmin.y,bmax.z},                 bmax,{bmax.x,bmax.y,bmin.z}};
-
-    AABB3d insbox;
-    // find the screen space aabb3d
-    for(auto& p:bboxpoints){
-        auto newp=transition*glm::vec4(p,1);
-        if(newp.w<=0){
-            // part of the box is behind the camera
-            return false;
-        }
-        p=mat_viewport_*(newp/newp.w);
-        for(int i=0;i<3;++i){
-            insbox.min[i]=std::min(insbox.min[i],p[i]);
-            insbox.max[i]=std::max(insbox.max[i],p[i]);
-        }
-    }
-
-    insbox.clipAABB(box3d_);
-
-    // the box is invalid
-    if(insbox.min.x>=insbox.max.x||insbox.min.y>=insbox.max.y){
-        return false;
-    }
-
-    sbox=insbox;
-    return true;
-}
-*/
 
 void Render::pipelineHZB_BVH()
 {
@@ -876,29 +902,6 @@ void Render::printProfile()
     std::cout << "back_culled   =" << info_.profile_.back_culled_face_num_ << std::endl;
     std::cout << "clipped       =" << info_.profile_.clipped_face_num_ << std::endl;
     std::cout << "hzb_culled    =" << info_.profile_.hzb_culled_face_num_ << std::endl;
-}
-
-void Render::initRenderIoInfo()
-{
-    info_.begin_path_tracing=false;
-    info_.profile_report = true;
-
-    // rasterizer
-    info_.raster_setting_.scene_filename = "Bunny_with_wall";// cornell-box // veach-mis // Bunny_with_wall
-    info_.raster_setting_.bvh_leaf_num = 12;
-    info_.raster_setting_.back_culling = true;
-    info_.raster_setting_.earlyz_test = true;
-    info_.raster_setting_.rasterize_type = RasterizeType::Naive;
-    info_.raster_setting_.show_tlas = false;
-    info_.raster_setting_.show_blas = false;
-    info_.raster_setting_.shader_type = ShaderType::Depth;
-
-    // path tracer
-    info_.tracer_setting_.filename_=info_.raster_setting_.scene_filename;
-    info_.tracer_setting_.filepath_="./";
-    info_.tracer_setting_.max_depth_=1;
-    info_.tracer_setting_.spp_=1;
-    info_.tracer_setting_.tiles_num_=1;
 }
 
 /**

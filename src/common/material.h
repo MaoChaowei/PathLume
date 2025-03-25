@@ -44,16 +44,15 @@ public:
 
     // initialize scattering type
     void initScattringType(){
-        if(!(type_==MtlType::NotInit)){
-            return;
+        if((type_==MtlType::NotInit)){
+            if(diffuse_[0]||diffuse_[1]||diffuse_[2])
+                type_=type_|MtlType::Diffuse;
+            if(specular_[0]||specular_[1]||specular_[2])
+                type_=type_|MtlType::Specular;
         }
-        if(diffuse_[0]||diffuse_[1]||diffuse_[2])
-            type_=type_|MtlType::Diffuse;
-        if(specular_[0]||specular_[1]||specular_[2])
-            type_=type_|MtlType::Specular;
     }
 
-    // initialize emission type if any
+    // initialize emission type if any and Specify which type of emitter it is and its radiance
     void initEmissionType(MtlType type,const glm::vec3& radiance ){
         if((int)(type&MtlType::Emissive)){
             type_=type_|type;
@@ -68,7 +67,6 @@ public:
     const std::string getName()const{ return name_; }
     const float getShininess() const{ return shininess_;}
 
-    void setRadianceRGB(glm::vec3 rgb){radiance_rgb_=rgb;}
     glm::vec3 getEmit()const{return radiance_rgb_;}
 
     bool isEmissive(){
@@ -86,8 +84,6 @@ public:
     float ior_;             // the Index of Refraction(IOR) of transparent object like glass and water.
     glm::vec3 transmittance_; 
 
-    glm::vec3 radiance_rgb_;    // only available for emmisive light
-
     std::string ambient_path_;
     std::string diffuse_path_;
     std::string specular_path_;
@@ -95,5 +91,9 @@ public:
     std::shared_ptr<Texture> amb_texture_=nullptr;
     std::shared_ptr<Texture> dif_texture_=nullptr;
     std::shared_ptr<Texture> spe_texture_=nullptr;
+
+    // only available for emissive light
+    glm::vec3 radiance_rgb_;    
+    
 
 };

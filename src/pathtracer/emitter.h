@@ -3,6 +3,10 @@
 #include"vertex.h"
 #include"ray.h"
 
+/**
+ * @brief A bridge struct connects hittable object and corresponding hitting method
+ * 
+ */
 struct EmitTriangle{
     EmitTriangle(const Vertex * a,const Vertex * b,const Vertex * c,glm::vec3 n,glm::vec3 radiance)
     :v0(a),v1(b),v2(c),normal(n),radiance_rgb(radiance){
@@ -21,16 +25,22 @@ struct EmitTriangle{
     }
 
     float getWeight(){
-        return area;
+        return area*utils::getLuminance(radiance_rgb);
     }
 };
 
+/**
+ * @brief Encapsulate necessary info for sampling a light
+ *  - shadow_ray_: Null means sample failed
+ *  - dist_ : actual distance between src and dst
+ *  - value_ : for Mento Carlo: Radiance*cos(theta')/(dist^2*A)
+ *  - pdf_ : pdf in dWi measurement rather than dA, that is G/area (for throwing outlier samples
+ */
 struct LightSampleRecord{
     std::shared_ptr<Ray> shadow_ray_=nullptr;  
     float dist_=0;                      // distance between src_pos and sample_pos
     glm::vec3 value_=glm::vec3(0.f);    // for Mento Carlo: Radiance*cos(theta')/(dist^2*A)
     float pdf_=0;                       // pdf in dWi measurement rather than dA, that is G/area
-    // float G_=0;                         // costheta/squred_dist;
 };
 
 /**
@@ -39,7 +49,7 @@ struct LightSampleRecord{
  */
 class Emitters{
 public:
-
+    
     void addEmitter(const Vertex * a,const Vertex * b,const Vertex * c,glm::vec3 n,glm::vec3 radiance){
         etris_.emplace_back(a,b,c,n,radiance);
     }
@@ -48,6 +58,7 @@ public:
         etris_.clear();
         totalWeight_=0;
     }
+    float getWeight(){return totalWeight_;}
 
     /**
      * @brief sample a light from the intersection point
@@ -71,7 +82,9 @@ public:
             u2=1-u2;
         }
 
+        // get Shading normal and shading point
         glm::vec3 dst_pos=(1-u1-u2)*tri.v0->w_pos_+u1*tri.v1->w_pos_+u2*tri.v2->w_pos_;
+        glm::vec3 light_norm=glm::normalize((1-u1-u2)*tri.v0->w_norm_+u1*tri.v1->w_norm_+u2*tri.v2->w_norm_);
 
         // calculate sample value
         glm::vec3 dist_vec=dst_pos-src_pos;
@@ -80,16 +93,16 @@ public:
         float squred_dist=glm::dot(dist_vec,dist_vec);
         lsRec.dist_=glm::sqrt(squred_dist);
 
-        assert(abs(glm::length(tri.normal)-1.0)<1e-6);
-        float costheta=std::max(glm::dot(tri.normal,glm::normalize(-dist_vec)),0.f);    // ignore the back face
+        float costheta=std::max(glm::dot(light_norm,glm::normalize(-dist_vec)),0.f);    // ignore the back face
 
         float G=costheta/squred_dist;
-        // lsRec.G_=G;
-  
-        lsRec.pdf_=1/(totalWeight_*G);  
+        
+        float inv_pdf_w=(totalWeight_*G)/(utils::getLuminance(tri.radiance_rgb));  
+        lsRec.pdf_=1.0/inv_pdf_w;
+
         glm::vec3 Le= tri.radiance_rgb;
 
-        lsRec.value_ = Le/lsRec.pdf_;
+        lsRec.value_ = Le*inv_pdf_w;
     }
 
     /**
@@ -109,7 +122,8 @@ public:
 
         float G=costheta/squred_dist;
 
-        return 1/(totalWeight_*G);
+        return 1.0*(utils::getLuminance(inst.material_->radiance_rgb_))/(totalWeight_*G); 
+        
 
     }
 

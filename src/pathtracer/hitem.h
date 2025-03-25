@@ -139,7 +139,7 @@ public:
 
                 auto local_norm=(1-b1-b2)*points[0]->norm_+b1*points[1]->norm_+b2*points[2]->norm_; // this is always towards the front face of mesh
                 if(glm::dot(local_norm,ray.dir_)>0.0)   // ray comes from the back face.
-                    local_norm=-local_norm; // reverse
+                    local_norm=-local_norm; // reverse the norm of intersection
 
                 inst.normal_=glm::normalize(local_norm);
 

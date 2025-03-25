@@ -21,7 +21,7 @@ void Tile::render(){
 
                 Ray ray(origin,direction,startT,endT);
                 // trace the ray and get its color
-                PathTraceRecord pRec(*scene_,*sampler_);
+                PathTraceRecord pRec(*scene_,*sampler_,setting_.light_split_);
                 color+=tracer_->Li(ray,pRec);
                 info_.avg_length+=pRec.curdepth;
                 

@@ -40,10 +40,16 @@ public:
 
 	// ui
 	void setMovement(float spd,float sensi);
+	void setMovement(float scene_scale){
+		speed_=scene_scale*Camera::scene_speed_factor;
+		sensitivity_=Camera::sensitivity_default;
+	}
 	void processKeyboard(CameraMovement type,float delta);
 	void processMouseMovement(float xoffset, float yoffset);
 	void updateCameraVectors();
 
+	static constexpr float sensitivity_default=0.1f;
+	static constexpr float scene_speed_factor=0.0005f;
 
 private:
 	// Camera coordinate system in world coordinate system

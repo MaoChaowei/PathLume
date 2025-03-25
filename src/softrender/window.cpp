@@ -465,13 +465,17 @@ void Window::ImGuiPathTracerWindow(){
 
         ImGui::Text("Max Depth ");
         ImGui::SameLine();
-        ImGui::SliderInt("##Max Depth ", (int*)&info_->tracer_setting_.max_depth_, 0, 50);
+        ImGui::SliderInt("##Max Depth(0 is infinite) ", (int*)&info_->tracer_setting_.max_depth_, 0, 50);
         ImGui::Text("Tiles Size(n*n)  ");
         ImGui::SameLine();
         ImGui::SliderInt("##Tiles Size(n*n)  ", (int*)&info_->tracer_setting_.tiles_num_, 1, 16);
         ImGui::Text("Sample per Pixel ");
         ImGui::SameLine();
-        ImGui::SliderInt("##Sample per Pixel ", (int*)&info_->tracer_setting_.spp_, 1,400);
+        ImGui::InputInt("##Sample per Pixel ", (int*)&info_->tracer_setting_.spp_, 1,1000);
+        info_->tracer_setting_.spp_=std::clamp((int)info_->tracer_setting_.spp_,1,1000);
+        ImGui::Text("Light Num ");
+        ImGui::SameLine();
+        ImGui::SliderInt("##Light Num ", (int*)&info_->tracer_setting_.light_split_, 1, 4);
 
         char input[256];
         strcpy(input,info_->tracer_setting_.filepath_.c_str());
@@ -515,6 +519,8 @@ void Window::ImGuiPathTracerWindow(){
             }
             
         }
+
+        ImGui::Text("· Render Time: %.2f", info_->tracer_setting_.render_time_);
         // TODO: file path check and warning.
 
     }

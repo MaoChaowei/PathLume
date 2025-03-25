@@ -31,8 +31,11 @@ struct RTracingSetting{
     uint32_t max_depth_;
     uint32_t tiles_num_;
     uint32_t spp_;
+    uint32_t light_split_;
+
     std::string filepath_;
     std::string filename_;
+    float render_time_;
     // havn't supported yet
     std::string sampler_;
 };
@@ -68,6 +71,6 @@ struct RenderIOInfo{
     RTracingSetting tracer_setting_;
     PerfCnt profile_;
     CPUTimer rasterize_timer_;            // (us)
-    CPUTimer pathtracer_timer_;
+    // CPUTimer pathtracer_timer_;
     
 };

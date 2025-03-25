@@ -59,7 +59,7 @@ int BVHbuilder::buildBVH(uint32_t start,uint32_t end){
     for(int i=start;i<=end;++i){
         current.bbox.expand(priboxes_[pridices_[i]]);
     }
-    current.bbox.enlargeEpsilon();  // enlarge aabb box a little bit to avoid floating-error
+    current.bbox.enlargeEpsilon(srender::AABBOX_EPS);  // enlarge aabb box a little bit to avoid floating-error
 
 
     // leaf?
