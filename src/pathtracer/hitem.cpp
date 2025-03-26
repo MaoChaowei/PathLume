@@ -9,7 +9,8 @@ IntersectRecord& IntersectRecord::operator=(const IntersectRecord& inst){
     t_=inst.t_;
     normal_=inst.normal_;
     material_=inst.material_;
-    // as_node_=inst.as_node_;
+    uv_=inst.uv_;
+    
     bvhnode_idx_=inst.bvhnode_idx_;
 
     return *this;
@@ -17,7 +18,6 @@ IntersectRecord& IntersectRecord::operator=(const IntersectRecord& inst){
 
 // use material to initialize bsdf
 std::shared_ptr<BSDF> IntersectRecord::getBSDF(){
-    std::shared_ptr<BSDF> bsdf_;
 
     // init TBN Matrix
     if(!TBN_)  TBN_=genTBN();
@@ -27,29 +27,31 @@ std::shared_ptr<BSDF> IntersectRecord::getBSDF(){
     // set emission bits to 0
     type=MtlType((int)type&(~(int)MtlType::Emissive));
 
+    auto bsdf_=std::make_shared<BSDFlist>();
+
     // test scattering bits
-    if(type==MtlType::Diffuse){
-        
-        bsdf_=std::make_shared<LambertBRDF>(material_->diffuse_);
-    }
-    else if(type==MtlType::Specular){
-        bsdf_=std::make_shared<SpecularBRDF>(material_->specular_);
-    }
-    else if(type==MtlType::Glossy){
-        auto list=std::make_shared<BSDFlist>();
-        list->insertBSDF(std::make_shared<LambertBRDF>(material_->diffuse_));
-        // list->insertBSDF(std::make_shared<SpecularBRDF>(material_->specular_));
-        list->insertBSDF(std::make_shared<BPhongSpecularBRDF>(material_->specular_,material_->shininess_));
+    bool init=false;
+    if((int)(type&MtlType::Diffuse)){
+        if(material_->dif_texture_)
+            bsdf_->insertBSDF(std::make_shared<LambertBRDF>(material_->getDiffuse(uv_[0],uv_[1])));
+        else
+            bsdf_->insertBSDF(std::make_shared<LambertBRDF>(material_->diffuse_));
 
-        list->initWeights();
+        init=true;
+    }
+    if((int)(type&MtlType::Specular)){
+        // bsdf_->insertBSDF(std::make_shared<SpecularBRDF>(material_->getSpecular()));
+        bsdf_->insertBSDF(std::make_shared<BPhongSpecularBRDF>(material_->specular_,material_->shininess_));
 
-        bsdf_=list;
+        init=true;
     }
-    else{
-        bsdf_=std::make_shared<LambertBRDF>(material_->diffuse_);
-        // std::cout<<"IntersectRecord::getBSDF():Unknown MtlType "<<material_->getName()<<", Set to Diffuse\n";
+
+    // If the scattering type is not initialized, simply give it a LambertBRDF
+    if(!init){
+        bsdf_->insertBSDF(std::make_shared<LambertBRDF>(material_->diffuse_));
     }
-    // bsdf_=std::make_shared<BPhongSpecularBRDF>(material_->specular_,material_->shininess_);
+
+    bsdf_->initWeights();
     return bsdf_;
 }
 

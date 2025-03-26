@@ -15,17 +15,18 @@ void Shader::vertexShader(Vertex& v ){
     v.w_pos_=(*model_mat_)*glm::vec4(v.pos_,1.0f);      
     v.w_norm_=glm::normalize( glm::vec3((*normal_mat_)*glm::vec4(v.norm_,0)));
 
-    if(v.c_pos_.w>1e-6 && INSIDE(v.c_pos_.x,v.c_pos_.y,v.c_pos_.z,v.c_pos_.w)){
-        v.discard=false;  
-    }
-    else{   
-        // need to be clipped
-        v.discard=true;
-    }
+    // if(v.c_pos_.w>1e-6 && INSIDE(v.c_pos_.x,v.c_pos_.y,v.c_pos_.z,v.c_pos_.w)){
+    //     v.discard=false;  
+    // }
+    // else{   
+    //     // need to be clipped
+    //     v.discard=true;
+    // }
 }
 
 void Shader::vertex2Screen(Vertex& v ){
     // perspective division and viewport transformation
+    assert(v.c_pos_.w>0.f);
     v.s_pos_=(*viewport_)*(v.c_pos_/v.c_pos_.w);     
 }
 
@@ -49,8 +50,13 @@ float Shader::fragmentDepth(uint32_t x,uint32_t y){
 
     glm::vec3 bary=utils::getBaryCenter(v1->s_pos_,v2->s_pos_,v3->s_pos_,glm::vec2(x,y));
     glm::vec3 correct_bary;
-    if(bary.x<0||bary.y<0||bary.z<0)
-        return 2;   // farther than far plane
+
+    // Check whether [x,y] sit inside the triangle. 
+    // HOWEVER, I found a loose epsilon here is necessary, otherwise, some boundary pixels will be thrown
+    // which results notable noises at the edge.
+    const float eps=-0.01;
+    if(bary.x<eps||bary.y<eps||bary.z<eps)
+        return srender::FAR_Z*2;   // farther than far plane
     
     // perspective correct interpolation
     for(int i=0;i<3;++i)

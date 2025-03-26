@@ -2,7 +2,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-
+/**
+ * @return glm::vec4 : color range in [0,255]
+ */
 glm::vec4 Texture::getColorBilinear(float x,float y){
     x=std::clamp(x,0.0f,1.0f);
     y=std::clamp(y,0.0f,1.0f);

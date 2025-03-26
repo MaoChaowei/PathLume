@@ -14,7 +14,7 @@ class BSDF;
  */
 class IntersectRecord{
 public:
-    IntersectRecord():pos_(0.0),t_(srender::MAXFLOAT),normal_(0.0),material_(nullptr),bvhnode_idx_(-1){}
+    IntersectRecord():pos_(0.0),t_(srender::MAXFLOAT),normal_(0.0),uv_(-1.f),material_(nullptr),bvhnode_idx_(-1){}
 
     IntersectRecord& operator=(const IntersectRecord& inst);
 
@@ -35,14 +35,11 @@ public:
     glm::vec3 pos_;
     float t_;           // distance from origin to the hit point
     glm::vec3 normal_;  // the front direction of the face,normalized
+    glm::vec2 uv_;
     std::shared_ptr<glm::mat3> TBN_;     // Tangent, Bitangent and Normal vectors in world space
 
     std::shared_ptr<const Material> material_;  // to generate bsdf
 
-    // struct{
-    //     int32_t tlas_node_idx_;
-    //     int32_t blas_node_idx_;
-    // }as_node_;
     int32_t bvhnode_idx_;
     
 };
@@ -128,7 +125,7 @@ public:
         float b1=factor*glm::dot(s1,s);
         float b2=factor*glm::dot(s2,ray.dir_);
 
-        if(b1<0||b2<0||1-b1-b2<0)
+        if(b1<0||b2<0||1-b1-b2<0)   // give a -eps tolerance?
             return false;
 
         if(ray.acceptT(t)){
@@ -137,11 +134,17 @@ public:
                 inst.pos_=ray.origin_+t*ray.dir_;
                 inst.t_=t;
 
+                // interpolate Shading Normal
                 auto local_norm=(1-b1-b2)*points[0]->norm_+b1*points[1]->norm_+b2*points[2]->norm_; // this is always towards the front face of mesh
                 if(glm::dot(local_norm,ray.dir_)>0.0)   // ray comes from the back face.
                     local_norm=-local_norm; // reverse the norm of intersection
 
                 inst.normal_=glm::normalize(local_norm);
+
+                // interpolate UV
+                for(int i=0;i<2;++i){
+                    inst.uv_[i]=(1-b1-b2)*points[0]->uv_[i]+b1*points[1]->uv_[i]+b2*points[2]->uv_[i]; 
+                }
 
                 inst.material_=material_;
                 

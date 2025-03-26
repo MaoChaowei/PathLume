@@ -13,12 +13,6 @@ enum ClipPlaneBit {
 
 int computeOutcode(const glm::vec4& pos) {
     int outcode = 0;
-    // if (pos.x < -pos.w+srender::EPSILON) outcode |= CLIP_LEFT;
-    // if (pos.x > pos.w-srender::EPSILON)  outcode |= CLIP_RIGHT;
-    // if (pos.y < -pos.w+srender::EPSILON) outcode |= CLIP_BOTTOM;
-    // if (pos.y > pos.w-srender::EPSILON)  outcode |= CLIP_TOP;
-    // if (pos.z < -pos.w+srender::EPSILON) outcode |= CLIP_NEAR;
-    // if (pos.z > pos.w-srender::EPSILON)  outcode |= CLIP_FAR;
     if (pos.x < -pos.w) outcode |= CLIP_LEFT;
     if (pos.x > pos.w)  outcode |= CLIP_RIGHT;
     if (pos.y < -pos.w) outcode |= CLIP_BOTTOM;

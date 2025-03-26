@@ -17,20 +17,20 @@ void Render::initRenderIoInfo()
     info_.profile_report = true;
 
     // rasterizer
-    info_.raster_setting_.scene_filename = "hit_test";// cornell-box // veach-mis // Bunny_with_wall
+    info_.raster_setting_.scene_filename = "Bunny_with_wall";// cornell-box // veach-mis // Bunny_with_wall // bathroom2
     info_.raster_setting_.bvh_leaf_num = 12;
     info_.raster_setting_.back_culling = true;
     info_.raster_setting_.earlyz_test = true;
     info_.raster_setting_.rasterize_type = RasterizeType::Naive;
     info_.raster_setting_.show_tlas = false;
     info_.raster_setting_.show_blas = false;
-    info_.raster_setting_.shader_type = ShaderType::Normal;
+    info_.raster_setting_.shader_type = ShaderType::Depth;
 
     // path tracer
     info_.tracer_setting_.filename_=info_.raster_setting_.scene_filename;
     info_.tracer_setting_.filepath_="./";
     info_.tracer_setting_.max_depth_=1;
-    info_.tracer_setting_.spp_=1;
+    info_.tracer_setting_.spp_=4;
     info_.tracer_setting_.tiles_num_=1;
     info_.tracer_setting_.light_split_=1;
 }

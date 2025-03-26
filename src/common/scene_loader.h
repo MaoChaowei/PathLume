@@ -86,9 +86,7 @@ public:
         glm::vec2 u12=sampler.getSample2D();    // sample a point inside the triangle
         emits_.sampleLight(src_pos,lsRec,u0,u12.x,u12.y);
 
-        // if the pdf is an outlier , don't consider this shadow ray
-        if(lsRec.pdf_<srender::EPSILON||lsRec.pdf_>srender::MAXPDFVALUE) 
-            lsRec.shadow_ray_=nullptr;
+        lsRec.pdf_=std::clamp(lsRec.pdf_,0.00001f,10000.f);
 
         return;
     }

@@ -109,7 +109,7 @@ public:
 };
 
 /**
- * @brief `BSDFlist` is a abstract for multiple bsdfs, which will sample a wi among all the bsdfs by their weights
+ * @brief `BSDFlist` is an abstract for multiple bsdfs, which will sample a wi among all the bsdfs by their weights
  * 
  */
 class BSDFlist:public BSDF{
@@ -125,6 +125,8 @@ public:
     }
 
     void initWeights(){
+        if(!bsdfs_.size()||!total_weight_)  return;
+
         float temp=0;
         for(int i=0;i<bsdfs_.size();++i){
             weights_[i]/=total_weight_;
@@ -134,6 +136,11 @@ public:
         assert(fabs(cdf_.back() - 1.0f) < srender::EPSILON);
     }
 
+    /**
+     * @brief only evaluta spceular bsdf for MIS
+     * 
+     * @param rec 
+     */
     void evalBSDF(BSDFRecord& rec)const override{
         // check wi is prepared
         assert(fabs(glm::length(rec.wi)-1.0)<srender::EPSILON);
@@ -147,6 +154,7 @@ public:
             rec.bsdf_val+=weights_[i]*temp.bsdf_val;
         }
 
+
     }
 
     void sampleBSDF(BSDFRecord& bsdfRec)const override{
@@ -158,7 +166,6 @@ public:
         bsdfs_[chosen]->sampleBSDF(bsdfRec);
         bsdfRec.bsdf_type=bsdfs_[chosen]->bsdf_type_;
 
-        // evalBSDF(bsdfRec);
     }
 
     float getWeight()const override{
@@ -236,7 +243,7 @@ public:
     void sampleBSDF(BSDFRecord& bsdfRec)const override{
         
         bsdfRec.wi=perfectReflect(glm::vec3(0,0,1),bsdfRec.wo);
-        bsdfRec.bsdf_val =albedo_;// glm::vec3(albedo_[0],albedo_[1],albedo_[2]);
+        bsdfRec.bsdf_val =albedo_;
         bsdfRec.pdf=1.0;
         bsdfRec.costheta=std::max(bsdfRec.wi.z,0.f);
 
@@ -301,7 +308,7 @@ public:
     }
 
     float getWeight()const override{
-        return Ks[0]+Ks[1]+Ks[2];
+        return 2.0*(Ks[0]+Ks[1]+Ks[2]);
     }
 
 private:

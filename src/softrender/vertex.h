@@ -17,7 +17,7 @@ struct Vertex
 
     Vertex() : pos_(glm::vec3(0.f)), norm_(glm::vec3(0.f)), color_(glm::vec4(-1.f)), uv_(glm::vec2(-1.f)) {};
     
-    // v3=v1(1-t)+v2*t
+    // For interpolate a new vertex when clipped by the clipping frustrum: v3=v1(1-t)+v2*t
     void vertexInterp(const Vertex &v2, Vertex& v3,float t) const
     {
 
