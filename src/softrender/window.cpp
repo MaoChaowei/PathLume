@@ -341,10 +341,10 @@ void Window::ImGuiSoftRenderWindow() {
         // demo_scene 
         setting.scene_change=false;
         const std::vector<std::string> demoScenes = {"hit_test","Bunny_with_wall","Bunnys_mutilights","veach-mis","cornell-box","bathroom2"};
-        auto findIdx0=[&setting,&demoScenes](){
+        auto findIdx0=[this,&demoScenes](){
             int idx=0;
             while(idx<demoScenes.size()){
-                if(demoScenes[idx]==setting.scene_filename)
+                if(demoScenes[idx]==info_->filename_)
                     return idx;
                 ++idx;
             }
@@ -360,9 +360,9 @@ void Window::ImGuiSoftRenderWindow() {
                 bool isSelected = (currentSceneIndex == i);
                 if (ImGui::Selectable(demoScenes[i].c_str(), isSelected)) {
                     currentSceneIndex = i;
-                    if(setting.scene_filename != demoScenes[i]){
+                    if(info_->filename_ != demoScenes[i]){
                         setting.scene_change=true;  
-                        setting.scene_filename = demoScenes[i];
+                        info_->filename_ = demoScenes[i];
                     }
                 }
             }
@@ -477,21 +477,21 @@ void Window::ImGuiPathTracerWindow(){
         ImGui::SameLine();
         ImGui::SliderInt("##Light Num ", (int*)&info_->tracer_setting_.light_split_, 1, 4);
 
-        char input[256];
-        strcpy(input,info_->tracer_setting_.filepath_.c_str());
-        ImGui::Text("File Path ");
-        ImGui::SameLine();
-        if(ImGui::InputText("##File Path ", input,sizeof(input))){
-            info_->tracer_setting_.filepath_=input;
-            input[0]='\0';
-        }
-        strcpy(input,info_->tracer_setting_.filename_.c_str());
-        ImGui::Text("File Name ");
-        ImGui::SameLine();
-        if(ImGui::InputText("##File Name ", input,sizeof(input))){
-            info_->tracer_setting_.filename_=input;
-            input[0]='\0';
-        }
+        // char input[256];
+        // strcpy(input,info_->tracer_setting_.filepath_.c_str());
+        // ImGui::Text("File Path ");
+        // ImGui::SameLine();
+        // if(ImGui::InputText("##File Path ", input,sizeof(input))){
+        //     info_->tracer_setting_.filepath_=input;
+        //     input[0]='\0';
+        // }
+        // strcpy(input,info_->tracer_setting_.filename_.c_str());
+        // ImGui::Text("File Name ");
+        // ImGui::SameLine();
+        // if(ImGui::InputText("##File Name ", input,sizeof(input))){
+        //     info_->tracer_setting_.filename_=input;
+        //     input[0]='\0';
+        // }
 
         if (info_->begin_path_tracing)
             ImGui::EndDisabled();

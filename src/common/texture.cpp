@@ -1,6 +1,7 @@
 #include"texture.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include"utils.h"
 
 /**
  * @return glm::vec4 : color range in [0,255]
@@ -67,9 +68,17 @@ void Texture::loadFromFile(std::string filename){
         }
     }
 
+    pnum_=width_*height_;
+
     if(data_){
         std::cout<<"Successfully load Texture: "<<filename<<".\n";
+        // from sRGB to Linear space
+        // for(int i=0;i<pnum_;++i){
+        //     int idx=i*channel_num_;
+        //     auto linear=utils::srgbToLinear(glm::vec3(data_[idx+0],data_[idx+1],data_[idx+2]));
+        //     for(int j=0;j<3;++j)
+        //         data_[idx+j]=linear[j];
+        // }
+            
     }
-    
-    pnum_=width_*height_;
 }

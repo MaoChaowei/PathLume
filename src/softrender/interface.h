@@ -9,7 +9,7 @@ struct RasterSetting{
     bool show_tlas=false;
     bool show_blas=false;
 
-    std::string scene_filename="";
+    // std::string scene_filename="";
     bool scene_change=false;       
 
     int bvh_leaf_num;
@@ -33,8 +33,8 @@ struct RTracingSetting{
     uint32_t spp_;
     uint32_t light_split_;
 
-    std::string filepath_;
-    std::string filename_;
+    // std::string filepath_;
+    // std::string filename_;
     float render_time_;
     // havn't supported yet
     std::string sampler_;
@@ -64,13 +64,12 @@ struct RenderIOInfo{
     // trigger render to path tracing work mode.
     bool begin_path_tracing=false;
     bool end_path_tracing=false;
-
     bool profile_report=true;
 
+    std::string filename_;
     RasterSetting raster_setting_;
     RTracingSetting tracer_setting_;
     PerfCnt profile_;
     CPUTimer rasterize_timer_;            // (us)
-    // CPUTimer pathtracer_timer_;
     
 };

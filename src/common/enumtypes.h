@@ -84,9 +84,19 @@ enum class RasterizeType{
  * 
  */
 enum class BSDFType{
-    BSDFLIST            = 0,
+    EMPTY               = 0,
     LambertReflection   = 1<<0,
     PerfectReflection   = 1<<1,
     BlinnPhongSpecular  = 1<<2,
 
 };
+
+inline BSDFType operator|(const BSDFType& s1,const BSDFType& s2){
+    return (BSDFType)((int)(s1)|(int)(s2));
+}
+inline BSDFType operator&(const BSDFType& s1,const BSDFType& s2){
+    return (BSDFType)((int)(s1)&(int)(s2));
+}
+inline BSDFType operator^(const BSDFType& s1,const BSDFType& s2){
+    return (BSDFType)((int)(s1)^(int)(s2));
+}

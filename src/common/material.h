@@ -66,20 +66,20 @@ public:
     }
 
     std::shared_ptr<Texture> getTexture(MltMember mtype)const;
-    const glm::vec3 getAmbient()const{ return ambient_; }
-    const glm::vec3 getDiffuse()const{ return diffuse_; }
+    glm::vec3 getAmbient()const{ return ambient_; }
+    glm::vec3 getDiffuse()const{ return diffuse_; }
     /**
      * @brief read texture and return diffuse color in [0,1]
      */
-    const glm::vec3 getDiffuse(float u,float v )const{ 
+    glm::vec3 getDiffuse(float u,float v )const{ 
         if(u<0||v<0)
             return diffuse_;
         auto value=dif_texture_->getColorBilinear(u,v)/255.0f;
         return value;
      }
-    const glm::vec3 getSpecular()const{ return specular_; }
-    const std::string getName()const{ return name_; }
-    const float getShininess() const{ return shininess_;}
+    glm::vec3 getSpecular()const{ return specular_; }
+    std::string getName()const{ return name_; }
+    float getShininess() const{ return shininess_;}
 
     glm::vec3 getEmit()const{return radiance_rgb_;}
 

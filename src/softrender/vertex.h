@@ -20,13 +20,12 @@ struct Vertex
     // For interpolate a new vertex when clipped by the clipping frustrum: v3=v1(1-t)+v2*t
     void vertexInterp(const Vertex &v2, Vertex& v3,float t) const
     {
-
         v3.color_ = color_ * (1.0f - t) + v2.color_ * t;
         v3.uv_ = uv_ * (1.0f - t) + v2.uv_ * t;
 
         v3.w_pos_ = w_pos_ * (1.0f - t) + v2.w_pos_ * t;
         v3.c_pos_ = c_pos_ * (1.0f - t) + v2.c_pos_ * t;
-        v3.w_norm_ = w_norm_ * (1.0f - t) + v2.w_norm_ * t;
+        v3.w_norm_ = glm::normalize(w_norm_ * (1.0f - t) + v2.w_norm_ * t);
 
         v3.discard = false;
     }

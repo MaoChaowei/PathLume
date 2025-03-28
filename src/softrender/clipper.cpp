@@ -69,7 +69,7 @@ bool computeIntersection(const Vertex& v1, const Vertex& v2,Vertex& v3, ClipPlan
 
     float startVal = A * v1.c_pos_.x + B * v1.c_pos_.y + C * v1.c_pos_.z + D * v1.c_pos_.w;
     float endVal = A * v2.c_pos_.x + B * v2.c_pos_.y + C * v2.c_pos_.z + D * v2.c_pos_.w;
-
+    
     // denom check
     if (fabs(startVal - endVal) < 1e-6f) {
         return false;
@@ -79,6 +79,7 @@ bool computeIntersection(const Vertex& v1, const Vertex& v2,Vertex& v3, ClipPlan
     t = glm::clamp(t, 0.0f, 1.0f);
     
     v1.vertexInterp(v2, v3,t);
+
     return true;
 }
 }

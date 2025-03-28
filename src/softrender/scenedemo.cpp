@@ -11,6 +11,15 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
     std::unordered_map<std::string,glm::vec3> lights_mtl;
 
     if(name=="hit_test"){
+        // lights_mtl["Light"]=glm::vec3(125.0,100.0,75.0);
+        // glm::vec3 eye(4.443147659301758, 16.934431076049805, 49.91023254394531);
+        // glm::vec3 lookat(-2.5734899044036865, 9.991769790649414, -10.588199615478516);
+        // setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),35.9834,1280.0/720,512,1.0,100.0);
+        // {
+        //     glm::mat4 model_matrix = glm::mat4(1.0f);
+        //     addObjInstance(std::string("assets/model/Mesh048.obj"), model_matrix, shader, false);
+        // }
+        
         glm::vec3 pos(278, 273, -800);
         glm::vec3 front(0,0,1);
         glm::vec3 up(0,1,0);
@@ -188,7 +197,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
         glm::vec3 front=lookat-eye;
         eye=glm::vec3(31,5,0);
         lookat=eye+front;
-        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),20.1143,1280.0/720.0,512,1.0,100.0);
+        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),20.1143,1280.0/720.0,1280,1.0,100.0);
         {
             glm::mat4 model_matrix = glm::mat4(1.0f);
             addObjInstance(std::string("assets/model/veach-mis/veach-mis.obj"), model_matrix, shader, false);
@@ -229,7 +238,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
         lights_mtl["Light"]=glm::vec3(125.0,100.0,75.0);
         glm::vec3 eye(4.443147659301758, 16.934431076049805, 49.91023254394531);
         glm::vec3 lookat(-2.5734899044036865, 9.991769790649414, -10.588199615478516);
-        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),35.9834,1280.0/720,1280,1.0,100.0);
+        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),35.9834,1280.0/720,512,1.0,100.0);
         // setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}));
         {
             glm::mat4 model_matrix = glm::mat4(1.0f);

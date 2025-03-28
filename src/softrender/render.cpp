@@ -17,7 +17,7 @@ void Render::initRenderIoInfo()
     info_.profile_report = true;
 
     // rasterizer
-    info_.raster_setting_.scene_filename = "Bunny_with_wall";// cornell-box // veach-mis // Bunny_with_wall // bathroom2
+    info_.filename_ = "cornell-box";// cornell-box // veach-mis // Bunny_with_wall // bathroom2
     info_.raster_setting_.bvh_leaf_num = 12;
     info_.raster_setting_.back_culling = true;
     info_.raster_setting_.earlyz_test = true;
@@ -27,11 +27,9 @@ void Render::initRenderIoInfo()
     info_.raster_setting_.shader_type = ShaderType::Depth;
 
     // path tracer
-    info_.tracer_setting_.filename_=info_.raster_setting_.scene_filename;
-    info_.tracer_setting_.filepath_="./";
     info_.tracer_setting_.max_depth_=1;
-    info_.tracer_setting_.spp_=4;
-    info_.tracer_setting_.tiles_num_=1;
+    info_.tracer_setting_.spp_=10;
+    info_.tracer_setting_.tiles_num_=16;
     info_.tracer_setting_.light_split_=1;
 }
 
@@ -56,7 +54,7 @@ void Render::pipelineInit()
     initRenderIoInfo();
 
     // 1. load scene and camera setting
-    loadDemoScene(info_.raster_setting_.scene_filename, info_.raster_setting_.shader_type);
+    loadDemoScene(info_.filename_, info_.raster_setting_.shader_type);
     setBVHLeafSize(info_.raster_setting_.bvh_leaf_num);
     scene_.buildTLAS();
     camera_.setMovement(scene_.getSceneScale());
@@ -96,7 +94,7 @@ void Render::startPathTracer(){
     // write to file
     auto pathinfo=info_.tracer_setting_;
 
-    colorbuffer_->saveToImage(pathinfo.filename_    \
+    colorbuffer_->saveToImage(info_.filename_    \
                 +"_S"+std::to_string(pathinfo.spp_) \
                 +"_L"+std::to_string(info_.tracer_setting_.light_split_)    \
                 +"_D"+std::to_string(pathinfo.max_depth_)   \
@@ -281,7 +279,7 @@ void Render::pipelineBegin()
     if (setting.scene_change == true)
     {
         // update scene
-        loadDemoScene(setting.scene_filename,setting.shader_type);
+        loadDemoScene(info_.filename_ ,setting.shader_type);
         // update bvh
         scene_.buildTLAS();
         // update zbuffer

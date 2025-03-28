@@ -58,6 +58,14 @@ inline float getLuminance(const glm::vec3 radiance_rgb){
     return (0.2126*radiance_rgb.r + 0.7152*radiance_rgb.g + 0.0722*radiance_rgb.b);
 }
 
+inline glm::vec3 srgbToLinear(const glm::vec3& srgb) {
+    glm::vec3 linear;
+    for(int i=0;i<3;++i){
+        linear[i]=std::pow(srgb[i],2.2f);
+    }
+    return linear;
+}
+
 }
 
 std::ostream& operator<<(std::ostream& os, const AABB3d& aabb);

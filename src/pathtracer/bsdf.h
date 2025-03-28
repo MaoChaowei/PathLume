@@ -91,20 +91,13 @@ public:
      * 
      * @param uniform : samples in [0,1]^2
      */
-    static void SpHSphereCosWeight(float& theta,float& phi,const glm::vec2& uniform){
-        theta=acos(sqrt(uniform[0]));
-        phi=2*srender::PI*uniform[1];
-    }
+    static void SpHSphereCosWeight(float& theta,float& phi,const glm::vec2& uniform);
 
-    static glm::vec3 polar2Cartesian(float theta,float phi){
-        float x=1.0*sin(theta)*cos(phi);
-        float y=1.0*sin(theta)*sin(phi);
-        float z=1.0*cos(theta);     
-        return glm::vec3(x,y,z);   
-    }
+    static glm::vec3 polar2Cartesian(float theta,float phi);
 
 public:
     BSDFType bsdf_type_;
+    float prob_;
     
 };
 
@@ -114,109 +107,60 @@ public:
  */
 class BSDFlist:public BSDF{
 public:
-    BSDFlist(BSDFType type=BSDFType::BSDFLIST):BSDF(type),total_weight_(0.f){}
+    BSDFlist(BSDFType type=BSDFType::EMPTY):BSDF(type),total_weight_(0.f){}
 
-    void insertBSDF(std::shared_ptr<const BSDF> bsdf){
-        bsdfs_.emplace_back(bsdf);
-        float w=bsdf->getWeight();
+    void insertBSDF(std::shared_ptr<const BSDF> bsdf);
 
-        total_weight_+=w;
-        weights_.emplace_back(w);
-    }
-
-    void initWeights(){
-        if(!bsdfs_.size()||!total_weight_)  return;
-
-        float temp=0;
-        for(int i=0;i<bsdfs_.size();++i){
-            weights_[i]/=total_weight_;
-            temp+= weights_[i];
-            cdf_.emplace_back(temp);
-        }
-        assert(fabs(cdf_.back() - 1.0f) < srender::EPSILON);
-    }
+    void initWeights();
 
     /**
-     * @brief only evaluta spceular bsdf for MIS
+     * @brief For each hit, randomly choose a bsdf ,and record the chosen type in member: bsdf_type_
      * 
-     * @param rec 
+     * @param rd : a random number in [0,1)
      */
-    void evalBSDF(BSDFRecord& rec)const override{
-        // check wi is prepared
-        assert(fabs(glm::length(rec.wi)-1.0)<srender::EPSILON);
-        rec.pdf=0.f;
-        rec.bsdf_val=glm::vec3(0.f);
-
-        for(int i=0;i<bsdfs_.size();++i){
-            BSDFRecord temp(rec.inst,rec.sampler,rec.wo,rec.wi);
-            bsdfs_[i]->evalBSDF(temp);
-            rec.pdf+=weights_[i]*temp.pdf;
-            rec.bsdf_val+=weights_[i]*temp.bsdf_val;
-        }
-
-
-    }
-
-    void sampleBSDF(BSDFRecord& bsdfRec)const override{
+    void randomSelectBSDF(float rd){
         // choose a bsdf randomly
-        float rd=bsdfRec.sampler.pcgRNG_.nextFloat();
-        int chosen=binarySearchBRDF(rd);
-
-        // sample this bsdf
-        bsdfs_[chosen]->sampleBSDF(bsdfRec);
-        bsdfRec.bsdf_type=bsdfs_[chosen]->bsdf_type_;
-
+        chosenIdx_=binarySearchBRDF(rd);
+        this->bsdf_type_=bsdfs_[chosenIdx_]->bsdf_type_;
     }
 
-    float getWeight()const override{
-        return total_weight_;
-    }
+    // must be called after `randomSelectBSDF`
+    void evalBSDF(BSDFRecord& rec)const override;
+
+    // must be called after `randomSelectBSDF`
+    void sampleBSDF(BSDFRecord& bsdfRec)const override;
+
+    float getWeight()const override;
  
 private:
-    // find the i such that cdf_[i]<u<=cdf_[i+1]
-    int binarySearchBRDF(float u)const{
-        int lt=0;
-        int rt=cdf_.size()-1;
-        while(lt<rt){
-            int mid=(lt+rt)/2;
-            if(cdf_[mid]<u) lt=mid+1;
-            else rt=mid;
-        }
-        return lt;
-    }
 
-    std::vector<float> cdf_;    // the cdf of weights_
+    /**
+     * @brief find the i such that cdf_[i]<u<=cdf_[i+1]
+     * 
+     * @param u : random number in [0,1)
+     * @return int : the chosen index of bsdf in bsdfs_
+     */
+    int binarySearchBRDF(float u)const;
+
+    std::vector<float> cdf_;    // the cdf of probablity; cdf_[i+1] is the sum of bsdfs_[0~i].prob_
     std::vector<float> weights_;
     std::vector<std::shared_ptr<const BSDF>> bsdfs_;
     float total_weight_;
+    int chosenIdx_;
 
 };
 
 class LambertBRDF:public BSDF{
 public:
-    LambertBRDF(glm::vec3 r,BSDFType type=BSDFType::LambertReflection):BSDF(type),albedo_(r){}
-
-    void evalBSDF(BSDFRecord& rec)const override{
-        rec.bsdf_val=albedo_*srender::INV_PI;
-        rec.pdf=std::max(0.f,rec.wi.z)*srender::INV_PI;
+    LambertBRDF(glm::vec3 r,BSDFType type=BSDFType::LambertReflection):BSDF(type),albedo_(r){
+        prob_=0.5;
     }
 
-    void sampleBSDF(BSDFRecord& bsdfRec)const override{
+    void evalBSDF(BSDFRecord& rec)const override;
 
-        // sample the hemisphere,get wi
-        glm::vec2 uniform=bsdfRec.sampler.getSample2D();
-        float theta,phi;
-        this->SpHSphereCosWeight(theta,phi,uniform);   
-        bsdfRec.wi=polar2Cartesian(theta,phi);
-        bsdfRec.costheta=std::max(bsdfRec.wi.z,0.f);
+    void sampleBSDF(BSDFRecord& bsdfRec)const override;
 
-        bsdfRec.bsdf_type=bsdf_type_;
-
-    }
-
-    float getWeight()const override{
-        return albedo_[0]+albedo_[1]+albedo_[2];
-    }
+    float getWeight()const override;
 
 private:
     glm::vec3 albedo_;
@@ -225,34 +169,15 @@ private:
 
 class SpecularBRDF:public BSDF{
 public:
-    SpecularBRDF(glm::vec3 ks,BSDFType type=BSDFType::PerfectReflection):BSDF(type),albedo_(ks){}
-
-    void evalBSDF( BSDFRecord& rec)const override{
-        auto reflected=perfectReflect(glm::vec3(0,0,1),rec.wo);
-        if(glm::length(reflected-rec.wi)<srender::EPSILON){
-            rec.bsdf_val = albedo_;
-            rec.pdf=1.0;
-        }
-        else{
-            rec.bsdf_val = glm::vec3(0.f);
-            rec.pdf=0.f;
-        }
+    SpecularBRDF(glm::vec3 ks,BSDFType type=BSDFType::PerfectReflection):BSDF(type),albedo_(ks){
+        prob_=0.7;
     }
 
+    void evalBSDF( BSDFRecord& rec)const override;
 
-    void sampleBSDF(BSDFRecord& bsdfRec)const override{
-        
-        bsdfRec.wi=perfectReflect(glm::vec3(0,0,1),bsdfRec.wo);
-        bsdfRec.bsdf_val =albedo_;
-        bsdfRec.pdf=1.0;
-        bsdfRec.costheta=std::max(bsdfRec.wi.z,0.f);
+    void sampleBSDF(BSDFRecord& bsdfRec)const override;
 
-        bsdfRec.bsdf_type=bsdf_type_;
-    }
-
-    float getWeight()const override{
-        return albedo_[0]+albedo_[1]+albedo_[2];
-    }
+    float getWeight()const override;
 
 private:
     glm::vec3 perfectReflect(const glm::vec3& normal,const glm::vec3& wo)const{
@@ -268,48 +193,15 @@ private:
 
 class BPhongSpecularBRDF:public BSDF{
 public:
-    BPhongSpecularBRDF(glm::vec3 ks,float ns,BSDFType type=BSDFType::BlinnPhongSpecular):BSDF(type),Ks(ks),Ns(ns){}
-
-    void evalBSDF( BSDFRecord& rec)const override{
-        if(rec.wi.z<0.f){
-            rec.pdf=0;
-            rec.bsdf_val=glm::vec3(0);
-            return;
-        }
-        glm::vec3 h=glm::normalize(rec.wi+rec.wo);
-
-        float cos_Ns=pow(std::max(h.z,0.f),Ns);
-        float temp=(Ns+2)*(0.5*srender::INV_PI)*cos_Ns;
-        float coef=0.25/(glm::dot(rec.wo,h));
-        
-        rec.bsdf_val=Ks*temp*coef;
-
-        rec.pdf=temp*h.z*coef;
+    BPhongSpecularBRDF(glm::vec3 ks,float ns,BSDFType type=BSDFType::BlinnPhongSpecular):BSDF(type),Ks(ks),Ns(ns){
+        prob_=0.5;
     }
 
-    void sampleBSDF(BSDFRecord& bsdfRec)const override{
-        // sample the pdf,get wi
-        glm::vec2 uniform=bsdfRec.sampler.getSample2D();
-        float costheta=pow(uniform[0],1.0/(Ns+2));
-        float theta=acos(costheta);
-        float phi=2*srender::PI*uniform[1];
-        glm::vec3 h=polar2Cartesian(theta,phi);
+    void evalBSDF( BSDFRecord& rec)const override;
 
-        bsdfRec.wi=getReflect(h,bsdfRec.wo);
-        if(bsdfRec.wi.z<0.f){
-            bsdfRec.pdf=0.f;
-            bsdfRec.bsdf_val=glm::vec3(0);
-            return;
-        }
-        bsdfRec.costheta=bsdfRec.wi.z;
+    void sampleBSDF(BSDFRecord& bsdfRec)const override;
 
-        bsdfRec.bsdf_type=bsdf_type_;
-        
-    }
-
-    float getWeight()const override{
-        return 2.0*(Ks[0]+Ks[1]+Ks[2]);
-    }
+    float getWeight()const override;
 
 private:
     glm::vec3 getReflect(const glm::vec3& h,const glm::vec3& wo)const{

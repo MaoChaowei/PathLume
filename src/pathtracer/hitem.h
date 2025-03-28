@@ -18,8 +18,8 @@ public:
 
     IntersectRecord& operator=(const IntersectRecord& inst);
 
-    // use material to initialize bsdf
-    std::shared_ptr<BSDF> getBSDF();
+    // Use material to initialize bsdf, and then Select a bsdf with random number u(in [0,1))
+    std::shared_ptr<BSDF> getBSDF(float u);
 
     // Generate an orthonormal base for tangent space samples. Reference: https://graphics.pixar.com/library/OrthonormalB/paper.pdf
     std::shared_ptr<glm::mat3> genTBN();
@@ -34,7 +34,7 @@ public:
 
     glm::vec3 pos_;
     float t_;           // distance from origin to the hit point
-    glm::vec3 normal_;  // the front direction of the face,normalized
+    glm::vec3 normal_;  // the Shading normal of the face,normalized
     glm::vec2 uv_;
     std::shared_ptr<glm::mat3> TBN_;     // Tangent, Bitangent and Normal vectors in world space
 
@@ -67,33 +67,7 @@ public:
         points.emplace_back(b);
         points.emplace_back(c);
     }
-    bool anyHit(const Ray& ray)const override{
-        glm::vec3 e1=points[1]->pos_-points[0]->pos_;
-        glm::vec3 e2=points[2]->pos_-points[0]->pos_;
-        glm::vec3 s=ray.origin_-points[0]->pos_;
-        glm::vec3 s1=glm::cross(ray.dir_,e2);
-        glm::vec3 s2=glm::cross(s,e1);
-
-        float det=glm::dot(s1,e1);
-        // parallel or degeneration of triangle
-        if(fabs(det)<srender::EPSILON) 
-            return false;
-
-        float factor=1.0/det;
-
-        float t=factor*glm::dot(s2,e2);
-        // only keep the forward hit
-        if(t<0.f)   
-            return false;
-
-        float b1=factor*glm::dot(s1,s);
-        float b2=factor*glm::dot(s2,ray.dir_);
-
-        if(b1<-srender::EPSILON||b2<-srender::EPSILON||1-b1-b2<-srender::EPSILON)
-            return false;
-
-        return true;
-    }
+    bool anyHit(const Ray& ray)const override;
 
     /**
      * @brief Moller Trumbore intersection algorithm
@@ -101,59 +75,7 @@ public:
      * @param inst : the record are all in model space
      * @return true : do have a intersection
      */
-    bool rayIntersect(const Ray& ray,IntersectRecord& inst)const override{
-        assert(fabs(glm::length(ray.dir_)-1.0)<1e-6);
-
-        glm::vec3 e1=points[1]->pos_-points[0]->pos_;
-        glm::vec3 e2=points[2]->pos_-points[0]->pos_;
-        glm::vec3 s=ray.origin_-points[0]->pos_;
-        glm::vec3 s1=glm::cross(ray.dir_,e2);
-        glm::vec3 s2=glm::cross(s,e1);
-
-        float det=glm::dot(s1,e1);
-        // parallel or degeneration of triangle
-        if(fabs(det)<srender::EPSILON) 
-            return false;
-
-        float factor=1.0/det;
-
-        float t=factor*glm::dot(s2,e2);
-        // only keep the forward hit
-        if(t<0.f)   
-            return false;
-
-        float b1=factor*glm::dot(s1,s);
-        float b2=factor*glm::dot(s2,ray.dir_);
-
-        if(b1<0||b2<0||1-b1-b2<0)   // give a -eps tolerance?
-            return false;
-
-        if(ray.acceptT(t)){
-            // record the nearest hit.
-            if(inst.t_>t){
-                inst.pos_=ray.origin_+t*ray.dir_;
-                inst.t_=t;
-
-                // interpolate Shading Normal
-                auto local_norm=(1-b1-b2)*points[0]->norm_+b1*points[1]->norm_+b2*points[2]->norm_; // this is always towards the front face of mesh
-                if(glm::dot(local_norm,ray.dir_)>0.0)   // ray comes from the back face.
-                    local_norm=-local_norm; // reverse the norm of intersection
-
-                inst.normal_=glm::normalize(local_norm);
-
-                // interpolate UV
-                for(int i=0;i<2;++i){
-                    inst.uv_[i]=(1-b1-b2)*points[0]->uv_[i]+b1*points[1]->uv_[i]+b2*points[2]->uv_[i]; 
-                }
-
-                inst.material_=material_;
-                
-            }
-            return true;
-        }
-        else   return false;
-
-    }
+    bool rayIntersect(const Ray& ray,IntersectRecord& inst)const override;
 
 private:
     std::vector<const Vertex*> points;
