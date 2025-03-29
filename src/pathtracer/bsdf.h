@@ -210,6 +210,12 @@ private:
         return wi;
     }
 
+    // glm::vec3 Fresnel(const glm::vec3& F0,float NdotV)const{
+    //     float cos=std::max(NdotV,0.f);
+    //     float cos5=pow(1-cos,5);
+    //     return F0+(glm::vec3(1)-F0)*glm::vec3(cos5);
+    // }
+
 
     glm::vec3 Ks;
     float Ns;

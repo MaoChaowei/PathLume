@@ -170,7 +170,7 @@ void BPhongSpecularBRDF::evalBSDF( BSDFRecord& rec)const{
 
     float cos_Ns=pow(std::max(h.z,0.f),Ns);
     float temp=(Ns+2)*(0.5*srender::INV_PI)*cos_Ns;
-    float coef=0.25/(glm::dot(rec.wo,h));
+    float coef=0.25f/(glm::dot(rec.wo,h));
     
     rec.bsdf_val=Ks*temp*coef;
 

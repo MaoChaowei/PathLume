@@ -219,7 +219,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
         glm::vec3 front=lookat-eye;
         // eye={287,223,-1171};
         // lookat=eye+front;
-        setCamera(eye,lookat, glm::cross(front,{0,1,0}),39.3077,1024.0/1024,512,1.0,1200.0);
+        setCamera(eye,lookat, glm::cross(front,{0,1,0}),39.3077,1024.0/1024,1024,1.0,1200.0);
         {
             glm::mat4 model_matrix = glm::mat4(1.0f);
             addObjInstance(std::string("assets/model/cornell-box/cornell-box.obj"), model_matrix, shader, false);
@@ -238,7 +238,7 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
         lights_mtl["Light"]=glm::vec3(125.0,100.0,75.0);
         glm::vec3 eye(4.443147659301758, 16.934431076049805, 49.91023254394531);
         glm::vec3 lookat(-2.5734899044036865, 9.991769790649414, -10.588199615478516);
-        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),35.9834,1280.0/720,512,1.0,100.0);
+        setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),35.9834,1280.0/720,1280,1.0,100.0);
         // setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}));
         {
             glm::mat4 model_matrix = glm::mat4(1.0f);

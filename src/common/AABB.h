@@ -107,6 +107,12 @@ struct AABB3d{
         return 0;
     }
 
+    // calculate the area of the aabb box
+    float boxSurfaceArea()const{
+        glm::vec3 diag = max - min;
+        return 2.0f * (diag.x*diag.y + diag.x*diag.z + diag.y*diag.z);
+    }
+
     // add some safty distance
     void enlargeEpsilon(float epsilon){
         epsilon=fabs(epsilon);

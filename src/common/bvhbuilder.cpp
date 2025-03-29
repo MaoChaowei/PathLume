@@ -45,7 +45,7 @@ BVHbuilder::BVHbuilder(const std::vector<std::shared_ptr<ASInstance>>& instances
 }
 
 // building implemention
-int BVHbuilder::buildBVH(uint32_t start,uint32_t end){
+int BVHbuilder::buildBVH(uint32_t start,uint32_t end,BVHType type){
     if(start>end) 
         return -1;
 
@@ -55,6 +55,7 @@ int BVHbuilder::buildBVH(uint32_t start,uint32_t end){
     auto& current=nodes_->at(nodeidx);
     current.primitive_num=end-start+1;
     current.prmitive_start=start;
+    current.left=current.right=-1;
     
     for(int i=start;i<=end;++i){
         current.bbox.expand(priboxes_[pridices_[i]]);
@@ -73,15 +74,102 @@ int BVHbuilder::buildBVH(uint32_t start,uint32_t end){
     if(leny>lenx&&leny>lenz) axis=1;
     else if(lenz>lenx&&lenz>leny) axis=2;
 
-    // sort to find the middle face
-    sort(pridices_.begin()+start,pridices_.begin()+end+1,[this,axis](uint32_t a, uint32_t b){
-        return this->cmp(a,b,axis);
-    });
-    uint32_t mid=(start+end)/2;
+    /*----------------------- Partition ---------------------------*/
+    uint32_t splitIdx=-1;
+    if(type==BVHType::Normal){
+        // sort to find the middle face
+        sort(pridices_.begin()+start,pridices_.begin()+end+1,[this,axis](uint32_t a, uint32_t b){
+            return this->cmp(a,b,axis);
+        });
+        splitIdx=(start+end)/2;
+    }
+    else if(type==BVHType::SAH){
+        // ============================
+        // 1. find the best partition axis 
+        // ============================
+        const float parentArea = current.bbox.boxSurfaceArea();
+        float bestCost   = srender::MAXFLOAT;
+        int   bestAxis   = -1;
+        int   bestOffset = -1;
+
+        for (int axis = 0; axis < 3; axis++)
+        {
+            std::sort(pridices_.begin() + start, pridices_.begin() + end + 1,
+                    [this, axis](uint32_t a, uint32_t b)
+                    {
+                        const AABB3d& boxA = priboxes_[a];
+                        const AABB3d& boxB = priboxes_[b];
+                        float cA = (boxA.min[axis] + boxA.max[axis]); 
+                        float cB = (boxB.min[axis] + boxB.max[axis]);
+                        return cA < cB;
+                    });
+
+            // prefixBoxes[i] stands for aabb box of [start..i] 
+            // suffixBoxes[i] stands for aabb box of [i..end]   
+            const uint32_t n = end - start + 1;
+            std::vector<AABB3d> prefixBoxes(n);
+            std::vector<AABB3d> suffixBoxes(n);
+            
+            prefixBoxes[0] = priboxes_[pridices_[start]];
+            for (uint32_t i = 1; i < n; i++) {
+                prefixBoxes[i] = prefixBoxes[i - 1];
+                prefixBoxes[i].expand(priboxes_[pridices_[start + i]]);
+            }
+
+            suffixBoxes[n - 1] = priboxes_[pridices_[start + (n - 1)]];
+            for (int i = (int)n - 2; i >= 0; i--) {
+                suffixBoxes[i] = suffixBoxes[i + 1];
+                suffixBoxes[i].expand(priboxes_[pridices_[start + i]]);
+            }
+
+            // go through all possible partition position : [start..end)
+            // left: [start..(start+i)] right: [(start+i+1)..end]
+            for (uint32_t i = 0; i < n - 1; i++) 
+            {
+                float leftArea  = prefixBoxes[i].boxSurfaceArea();
+                float rightArea = suffixBoxes[i + 1].boxSurfaceArea();
+                uint32_t leftCount  = i + 1;       
+                uint32_t rightCount = n - (i + 1); 
+
+                float cost = leftArea * leftCount + rightArea * rightCount;
+
+                if (cost < bestCost) {
+                    bestCost   = cost;
+                    bestAxis   = axis;
+                    bestOffset = i;
+                }
+            }
+        }
+
+        // if fail to find a good partion ( many boxes with Overlapping centers ), regard them as one node
+        if (bestAxis < 0) {
+            return nodeidx;
+        }
+
+        // ============================
+        // 2. sort again with the optical axis
+        // ============================
+        std::sort(pridices_.begin() + start, pridices_.begin() + end + 1,
+                [this, bestAxis](uint32_t a, uint32_t b)
+                {
+                    const AABB3d& boxA = priboxes_[a];
+                    const AABB3d& boxB = priboxes_[b];
+                    float cA = (boxA.min[bestAxis] + boxA.max[bestAxis]) * 0.5f;
+                    float cB = (boxB.min[bestAxis] + boxB.max[bestAxis]) * 0.5f;
+                    return cA < cB;
+                });
+        
+        splitIdx = start + bestOffset; // left [start..splitIndex], right[splitIndex+1..end]
+
+    }
+    else{
+        throw std::runtime_error("BVHbuilder::buildBVH-> unknown BVHType!");
+    }
+
 
     // recursive 
-    current.right=buildBVH(mid+1,end);
-    current.left=buildBVH(start,mid);
+    current.right=buildBVH(splitIdx+1,end);
+    current.left=buildBVH(start,splitIdx);
 
 
     return nodeidx;

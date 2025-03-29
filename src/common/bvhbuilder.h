@@ -21,6 +21,9 @@ struct BVHnode:public Hitem
 
     BVHnode():left(-1),right(-1),prmitive_start(0),primitive_num(0){}
 
+    /**
+     * @brief the ray has an intersection with the aabb box only when tmin<tmax && tmax>0
+     */
     bool anyHit(const Ray& ray)const override{
         // set a infinite interval
         float interval_min=srender::MINFLOAT,interval_max=srender::MAXFLOAT;
@@ -43,6 +46,9 @@ struct BVHnode:public Hitem
                     return false;
             }
         }
+        // the box is behind the ray!
+        if(interval_max<0.f)
+            return false;
 
         // // the ray need to accept this box
         // if(interval_max<ray.st_t_||interval_min>ray.ed_t_)
@@ -59,6 +65,11 @@ struct BVHnode:public Hitem
 class BVHbuilder
 {
 public:
+    enum class BVHType{
+        Normal,
+        SAH,
+    };
+
     BVHbuilder()=delete;
 
     // building bvh tree for BLAS
@@ -68,7 +79,7 @@ public:
     BVHbuilder(const std::vector<std::shared_ptr<ASInstance>>& instances);
 
     // building implemention
-    int buildBVH(uint32_t start,uint32_t end);
+    int buildBVH(uint32_t start,uint32_t end, BVHType type=BVHType::SAH);
     bool cmp(uint32_t a, uint32_t b,int axis);
 
     std::unique_ptr<std::vector<BVHnode>> moveNodes(){ return std::move(nodes_); }
@@ -76,6 +87,7 @@ public:
 
 
 public:
+
     std::unique_ptr<std::vector<BVHnode>> nodes_;        // root node is the nodes_[0].
 
     std::vector<uint32_t> pridices_;    // primitives_indices_

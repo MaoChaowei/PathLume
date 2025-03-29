@@ -17,7 +17,7 @@ void Render::initRenderIoInfo()
     info_.profile_report = true;
 
     // rasterizer
-    info_.filename_ = "cornell-box";// cornell-box // veach-mis // Bunny_with_wall // bathroom2
+    info_.filename_ = "bathroom2";// cornell-box // veach-mis // Bunny_with_wall // bathroom2
     info_.raster_setting_.bvh_leaf_num = 12;
     info_.raster_setting_.back_culling = true;
     info_.raster_setting_.earlyz_test = true;
@@ -27,7 +27,7 @@ void Render::initRenderIoInfo()
     info_.raster_setting_.shader_type = ShaderType::Depth;
 
     // path tracer
-    info_.tracer_setting_.max_depth_=1;
+    info_.tracer_setting_.max_depth_=8;
     info_.tracer_setting_.spp_=10;
     info_.tracer_setting_.tiles_num_=16;
     info_.tracer_setting_.light_split_=1;
