@@ -11,14 +11,6 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
     std::unordered_map<std::string,glm::vec3> lights_mtl;
 
     if(name=="hit_test"){
-        // lights_mtl["Light"]=glm::vec3(125.0,100.0,75.0);
-        // glm::vec3 eye(4.443147659301758, 16.934431076049805, 49.91023254394531);
-        // glm::vec3 lookat(-2.5734899044036865, 9.991769790649414, -10.588199615478516);
-        // setCamera(eye,lookat, glm::cross(lookat-eye,{0,1,0}),35.9834,1280.0/720,512,1.0,100.0);
-        // {
-        //     glm::mat4 model_matrix = glm::mat4(1.0f);
-        //     addObjInstance(std::string("assets/model/Mesh048.obj"), model_matrix, shader, false);
-        // }
         
         glm::vec3 pos(278, 273, -800);
         glm::vec3 front(0,0,1);
@@ -176,17 +168,6 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
     }
     else if (name == "veach-mis")
     {
-        /*
-        <camera type="perspective" width="1280" height="720" fovy="20.1143">
-            <eye x="28.2792" y="5.2" z="1.23612e-06"/> 
-            <lookat x="0.0" y="2.8" z="0.0"/> 
-            <up x="0.0" y="1.0" z="0.0"/> 
-        </camera>
-        <light mtlname="light1" radiance="300,300,300"/>
-        <light mtlname="light2" radiance="50,50,50"/>
-        <light mtlname="light3" radiance="20,20,20"/>
-        <light mtlname="light4" radiance="10,10,10"/>
-        */
         lights_mtl["light1"]=glm::vec3(300,300,300);
         lights_mtl["light2"]=glm::vec3(50,50,50);
         lights_mtl["light3"]=glm::vec3(20,20,20);
@@ -205,21 +186,13 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
     }
     else if (name == "cornell-box")
     {
-        /*
-        <camera type="perspective" width="1024" height="1024" fovy="39.3077">
-            <eye x="278.0" y="273.0" z="-800.0"/> 
-            <lookat x="278.0" y="273.0" z="-799.0"/> 
-            <up x="0.0" y="1.0" z="0.0"/> 
-        </camera>
-        <light mtlname="Light" radiance="34.0, 24.0, 8.0"/>
-        */
         lights_mtl["Light"]=glm::vec3(34.0, 24.0, 8.0);
         glm::vec3 eye(278.0, 273.0, -800);
         glm::vec3 lookat(278.0, 273.0, -799.0);
         glm::vec3 front=lookat-eye;
         // eye={287,223,-1171};
         // lookat=eye+front;
-        setCamera(eye,lookat, glm::cross(front,{0,1,0}),39.3077,1024.0/1024,1024,1.0,1200.0);
+        setCamera(eye,lookat, glm::cross(front,{0,1,0}),39.3077,1024.0/1024,1024,1.0,1500.0);
         {
             glm::mat4 model_matrix = glm::mat4(1.0f);
             addObjInstance(std::string("assets/model/cornell-box/cornell-box.obj"), model_matrix, shader, false);
@@ -227,14 +200,6 @@ void Render::loadDemoScene(std::string name, ShaderType shader)
     }
     else if (name == "bathroom2")
     {
-        /*
-        <camera type="perspective" width="1280" height="720" fovy="35.9834">
-            <eye x="4.443147659301758" y="16.934431076049805" z="49.91023254394531"/> 
-            <lookat x="-2.5734899044036865" y="9.991769790649414" z="-10.588199615478516"/> 
-            <up x="0.0" y="1.0" z="0.0"/> 
-        </camera>
-        <light mtlname="Light" radiance="125.0,100.0,75.0"/>
-        */
         lights_mtl["Light"]=glm::vec3(125.0,100.0,75.0);
         glm::vec3 eye(4.443147659301758, 16.934431076049805, 49.91023254394531);
         glm::vec3 lookat(-2.5734899044036865, 9.991769790649414, -10.588199615478516);

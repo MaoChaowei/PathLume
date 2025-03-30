@@ -311,7 +311,6 @@ void Window::newImGuiFrame(){
 void Window::ImGuiSoftRenderWindow() {
     RasterSetting &setting = info_->raster_setting_;
     static bool first_load=true;
-
     if(first_load){
         ImGui::SetNextWindowPos(ImVec2(0, window_height_-control_height_)); 
         ImGui::SetNextWindowSize(ImVec2(window_width_/4.0, control_height_)); 
@@ -340,7 +339,7 @@ void Window::ImGuiSoftRenderWindow() {
 
         // demo_scene 
         setting.scene_change=false;
-        const std::vector<std::string> demoScenes = {"hit_test","Bunny_with_wall","Bunnys_mutilights","veach-mis","cornell-box","bathroom2"};
+        const std::vector<std::string> demoScenes = {"hit_test","veach-mis","cornell-box","bathroom2"}; // Bunny_with_wall ，Bunnys_mutilights
         auto findIdx0=[this,&demoScenes](){
             int idx=0;
             while(idx<demoScenes.size()){
@@ -473,55 +472,25 @@ void Window::ImGuiPathTracerWindow(){
         ImGui::SameLine();
         ImGui::InputInt("##Sample per Pixel ", (int*)&info_->tracer_setting_.spp_, 1,1000);
         info_->tracer_setting_.spp_=std::clamp((int)info_->tracer_setting_.spp_,1,1000);
-        ImGui::Text("Light Num ");
+        ImGui::Text("Light Split ");
         ImGui::SameLine();
-        ImGui::SliderInt("##Light Num ", (int*)&info_->tracer_setting_.light_split_, 1, 4);
+        ImGui::SliderInt("##Light Split ", (int*)&info_->tracer_setting_.light_split_, 1, 4);
 
-        // char input[256];
-        // strcpy(input,info_->tracer_setting_.filepath_.c_str());
-        // ImGui::Text("File Path ");
-        // ImGui::SameLine();
-        // if(ImGui::InputText("##File Path ", input,sizeof(input))){
-        //     info_->tracer_setting_.filepath_=input;
-        //     input[0]='\0';
-        // }
-        // strcpy(input,info_->tracer_setting_.filename_.c_str());
-        // ImGui::Text("File Name ");
-        // ImGui::SameLine();
-        // if(ImGui::InputText("##File Name ", input,sizeof(input))){
-        //     info_->tracer_setting_.filename_=input;
-        //     input[0]='\0';
-        // }
 
         if (info_->begin_path_tracing)
             ImGui::EndDisabled();
 
-
-        ImGui::Checkbox("Begin Path tracing", &info_->begin_path_tracing);
-
-        if(info_->begin_path_tracing){
-            if(!info_->end_path_tracing)
-                ImGui::BeginDisabled();
-             
-            bool reset=false;
-            if(ImGui::Button("confirmation")){
-                // TODO: export file
-                std::cout<<"TODO: export file\n";
-                reset=true; // reset all flags about path tracing
+        if(info_->end_path_tracing){
+            auto temp=info_->begin_path_tracing;
+            ImGui::Checkbox("Begin Path tracing", &temp);
+            {
+                std::lock_guard<std::mutex> lock(info_->mx_msg_);
+                info_->begin_path_tracing=temp;
             }
-
-            if (!info_->end_path_tracing)
-                ImGui::EndDisabled();
-
-            if(reset){
-                info_->begin_path_tracing=false;
-                info_->end_path_tracing=false;
-            }
-            
         }
 
+
         ImGui::Text("· Render Time: %.2f", info_->tracer_setting_.render_time_);
-        // TODO: file path check and warning.
 
     }
     ImGui::End();

@@ -11,28 +11,6 @@ Render::Render() : camera_(), colorbuffer_(std::make_shared<ColorBuffer>(camera_
     box3d_.max = {camera_.getImageWidth() - 1, camera_.getImageHeight() - 1, 1};
 }
 
-void Render::initRenderIoInfo()
-{
-    info_.begin_path_tracing=false;
-    info_.profile_report = true;
-
-    // rasterizer
-    info_.filename_ = "bathroom2";// cornell-box // veach-mis // Bunny_with_wall // bathroom2
-    info_.raster_setting_.bvh_leaf_num = 12;
-    info_.raster_setting_.back_culling = true;
-    info_.raster_setting_.earlyz_test = true;
-    info_.raster_setting_.rasterize_type = RasterizeType::Naive;
-    info_.raster_setting_.show_tlas = false;
-    info_.raster_setting_.show_blas = false;
-    info_.raster_setting_.shader_type = ShaderType::Depth;
-
-    // path tracer
-    info_.tracer_setting_.max_depth_=8;
-    info_.tracer_setting_.spp_=10;
-    info_.tracer_setting_.tiles_num_=16;
-    info_.tracer_setting_.light_split_=1;
-}
-
 // once change camera property, we need to update VPV-matrix accordingly
 void Render::updateMatrix()
 {
@@ -44,8 +22,7 @@ void Render::updateMatrix()
 
 void Render::addObjInstance(std::string filename, glm::mat4 &model, ShaderType shader, bool flipn, bool backculling)
 {
-    // scene_.addObjInstance(filename,model,shader,flipn,backculling);
-    scene_.addObjInstance_SpaceFriendly(filename, model, shader, flipn, backculling);
+    scene_.addObjInstance(filename,model,shader,flipn,backculling);
 }
 
 void Render::pipelineInit()
@@ -76,6 +53,11 @@ void Render::pipelineInit()
 void Render::startPathTracer(){
 
     // preprocess: 
+    {
+        std::lock_guard<std::mutex> lock(info_.mx_msg_);
+        info_.begin_path_tracing=true;
+        info_.end_path_tracing=false;
+    }
     // 1.create film and tiles
     std::shared_ptr<Film> film=camera_.getNewFilm();
     film->initTiles(info_.tracer_setting_,colorbuffer_,&scene_);
@@ -89,7 +71,13 @@ void Render::startPathTracer(){
     int thread_num=film->parallelTiles();
 
     timer.stop("Rendering");
+    
     info_.tracer_setting_.render_time_=timer.getElapsedTime("Rendering");
+    {
+        std::lock_guard<std::mutex> lock(info_.mx_msg_);
+        info_.end_path_tracing=true;
+        // info_.begin_path_tracing=false;  leave this to user to trigger
+    }
 
     // write to file
     auto pathinfo=info_.tracer_setting_;
@@ -277,15 +265,18 @@ void Render::pipelineBegin()
     // update the scene or render accorrding to the setting(modified by ImGui)
     auto setting=info_.raster_setting_;
     if (setting.scene_change == true)
-    {
-        // update scene
-        loadDemoScene(info_.filename_ ,setting.shader_type);
-        // update bvh
-        scene_.buildTLAS();
-        // update zbuffer
-        hzb_ = std::make_shared<HZbuffer>(camera_.getImageWidth(), camera_.getImageHeight());
-        // update camera movement arguments
-        camera_.setMovement(scene_.getSceneScale());
+    {   // TODO: try to use son thread to load the scene and change camera later in the parent thread...
+        auto loading=[&]{
+            loadDemoScene(info_.filename_ ,setting.shader_type);
+            // update bvh
+            scene_.buildTLAS();
+            // update zbuffer
+            hzb_ = std::make_shared<HZbuffer>(camera_.getImageWidth(), camera_.getImageHeight());
+            // update camera movement arguments
+            camera_.setMovement(scene_.getSceneScale());
+        };
+        std::thread loadthread(loading);
+        loadthread.join();
     }
     if (setting.shader_change == true)
     {

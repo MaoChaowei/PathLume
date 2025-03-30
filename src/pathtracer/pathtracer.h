@@ -58,8 +58,6 @@ public:
         if(!inst)   return glm::vec3(0.f);
 
         glm::vec3 color = (inst->normal_ * 0.5f + 0.5f);
-        
-        // glm::vec3 color=inst->material_->getDiffuse(inst->uv_[0],inst->uv_[1]);
 
         return color;
     }
@@ -92,13 +90,7 @@ private:
         return weight;
     }
 
-    // void updateRadiance(glm::vec3& radiance,const glm::vec3& delta,float max_factor){
-    //     if(utils::getLuminance(delta)>utils::getLuminance(radiance)*max_factor)
-    //         radiance+=radiance*max_factor;
-    //     radiance+=delta;
-    // }
-    int max_depth_; 
-    std::mutex mx_log_;
+    int max_depth_;
 
 };
 

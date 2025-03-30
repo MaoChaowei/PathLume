@@ -3,6 +3,7 @@
 #include"common/enumtypes.h"
 #include"common/cputimer.h"
 #include<string>
+#include<mutex>
 
 struct RasterSetting{
 
@@ -61,9 +62,13 @@ struct PerfCnt{
 };
 
 struct RenderIOInfo{
-    // trigger render to path tracing work mode.
-    bool begin_path_tracing=false;
-    bool end_path_tracing=false;
+    /*------------thread unsafe-------------*/
+    
+    std::mutex mx_msg_;             
+    bool begin_path_tracing=false;  // trigger render to path tracing work mode.
+    bool end_path_tracing=true;
+
+    /*------------thread safe-------------*/
     bool profile_report=true;
 
     std::string filename_;

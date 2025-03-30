@@ -47,23 +47,10 @@ public:
     void setTexture(MltMember mtype,std::string path);
 
     // initialize scattering type
-    void initScattringType(){
-        if((type_==MtlType::NotInit)){
-            if(dif_texture_||diffuse_[0]||diffuse_[1]||diffuse_[2])
-                type_=type_|MtlType::Diffuse;
-            if(spe_texture_||specular_[0]||specular_[1]||specular_[2])
-                type_=type_|MtlType::Specular;
-            
-        }
-    }
+    void initScattringType();
 
     // initialize emission type if any and Specify which type of emitter it is and its radiance
-    void initEmissionType(MtlType type,const glm::vec3& radiance ){
-        if((int)(type&MtlType::Emissive)){
-            type_=type_|type;
-            radiance_rgb_=radiance;
-        }
-    }
+    void initEmissionType(MtlType type,const glm::vec3& radiance );
 
     std::shared_ptr<Texture> getTexture(MltMember mtype)const;
     glm::vec3 getAmbient()const{ return ambient_; }
@@ -76,7 +63,8 @@ public:
             return diffuse_;
         auto value=dif_texture_->getColorBilinear(u,v)/255.0f;
         return value;
-     }
+    }
+
     glm::vec3 getSpecular()const{ return specular_; }
     std::string getName()const{ return name_; }
     float getShininess() const{ return shininess_;}

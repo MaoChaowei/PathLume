@@ -49,18 +49,6 @@ void Film::initTiles(const RTracingSetting& setting,std::shared_ptr<ColorBuffer>
 
 int Film::parallelTiles(){
 
-    /*
-    // VERSION 1: didn't control the number of threads  
-    std::vector<std::thread> threads;
-    for(int i=0;i<tile_num_*tile_num_;++i){
-        threads.emplace_back(std::thread(&Tile::render, tiles_[i].get()));
-    }
-
-    for(auto& t:threads)
-        t.join();
-
-    */
-
     // get system's max concurrency
     size_t threadCnt=std::thread::hardware_concurrency()-1;
     std::cout<<"System's max concurrency is "<<threadCnt+1<<std::endl;

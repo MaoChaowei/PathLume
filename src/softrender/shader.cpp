@@ -54,7 +54,7 @@ float Shader::fragmentDepth(uint32_t x,uint32_t y){
     // Check whether [x,y] sit inside the triangle. 
     // HOWEVER, I found a loose epsilon here is necessary, otherwise, some boundary pixels will be thrown
     // which results in notable noises at the edge.
-    const float eps=-0.01;
+    const float eps=-0.001;
     if(bary.x<eps||bary.y<eps||bary.z<eps)
         return srender::FAR_Z*2;   // farther than far plane
     

@@ -2,6 +2,30 @@
 #include"window.h"
 #include"thread"
 
+
+void Render::initRenderIoInfo()
+{
+    info_.begin_path_tracing=false;
+    info_.profile_report = true;
+
+    // rasterizer
+    info_.filename_ = "cornell-box";// cornell-box // veach-mis // Bunny_with_wall // bathroom2
+    info_.raster_setting_.bvh_leaf_num = 12;
+    info_.raster_setting_.back_culling = true;
+    info_.raster_setting_.earlyz_test = true;
+    info_.raster_setting_.rasterize_type = RasterizeType::Naive;
+    info_.raster_setting_.show_tlas = false;
+    info_.raster_setting_.show_blas = false;
+    info_.raster_setting_.shader_type = ShaderType::Depth;
+
+    // path tracer
+    info_.tracer_setting_.max_depth_=5;
+    info_.tracer_setting_.spp_=10;
+    info_.tracer_setting_.tiles_num_=16;
+    info_.tracer_setting_.light_split_=1;
+}
+
+
 void Render::GameLoop(){
 
 
@@ -27,6 +51,7 @@ void Render::GameLoop(){
 
         window.newImGuiFrame(); 
 
+        // Different Pipeline
         if(!info_.begin_path_tracing){
              // move camera according to the input
             this->moveCamera();
@@ -36,7 +61,7 @@ void Render::GameLoop(){
 
             // the pipeline goes well here
             this->pipelineBegin();
-
+            
             during_path_tracing=false;
         }
         else if(!during_path_tracing){
@@ -47,11 +72,9 @@ void Render::GameLoop(){
 
         // update frameBuffer
         window.updateFrame(colorbuffer_->getAddr());
-
         
         curTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(curTime - lastTime).count();
-        // std::cout<<"frame : "<<cnt++<<" ,duration:"<<duration <<" ms "<<std::endl;
 
         // render imGui for this frame
         window.renderImGuiFrame();

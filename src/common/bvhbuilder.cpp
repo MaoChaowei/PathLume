@@ -1,6 +1,44 @@
 #include"bvhbuilder.h"
 #include"as.h"
 
+/**
+ * @brief the ray has an intersection with the aabb box only when tmin<tmax && tmax>0
+ */
+bool BVHnode::anyHit(const Ray& ray)const{
+    // set a infinite interval
+    float interval_min=srender::MINFLOAT,interval_max=srender::MAXFLOAT;
+
+    // for each axis, caculate the interval of t
+    for(int i=0;i<3;++i){
+        if(abs(ray.dir_[i])<srender::EPSILON){
+            if(ray.origin_[i]<=bbox.min[i]||ray.origin_[i]>=bbox.max[i])
+                return false;
+        }
+        else{
+            float tmin=(bbox.min[i]-ray.origin_[i])*ray.inv_dir_[i];
+            float tmax=(bbox.max[i]-ray.origin_[i])*ray.inv_dir_[i];
+            if(tmin>tmax)
+                std::swap(tmin,tmax);
+            if(tmin>interval_min) interval_min=tmin;
+            if(tmax<interval_max) interval_max=tmax;
+
+            if(interval_min>=interval_max)
+                return false;
+        }
+    }
+    // the box is behind the ray!
+    if(interval_max<0.f)
+        return false;
+
+    // // the ray need to accept this box
+    // if(interval_max<ray.st_t_||interval_min>ray.ed_t_)
+    //     return false;
+
+    return true;
+}
+
+
+
 BVHbuilder::BVHbuilder(std::shared_ptr<ObjectDesc> obj,uint32_t leaf_size):nodes_(std::make_unique<std::vector<BVHnode>>()){
     if(obj->getPrimitiveType()!=PrimitiveType::MESH){
         std::cerr<<"BVHbuilder:obj->getPrimitiveType()!=PrimitiveType::MESH!\n";
