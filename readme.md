@@ -12,9 +12,9 @@
 
 - 加载场景后的光栅化渲染界面，可通过深度图和法向图观察模型，通过“WASD”移动相机，通过鼠标左键拖拽改变相机朝向。
 
-![image.png](assets/doc/img/image.png)
+![image.png](doc/img/image.png)
 
-![image.png](assets/doc/img/image%201.png)
+![image.png](doc/img/image%201.png)
 
 - 下方交互栏中“Path Tracing Setting”是与路径追踪相关的设置，包括
     - Max Depth——最大路径，0表示无穷（RR截断），1表示直接光照…
@@ -93,11 +93,11 @@ build/pathlume
 看到build文件夹中生成了目标可执行程序即编译成功。运行结果如下：
 
 - case 1:spp=200, Depth=16.
-![cornell-box_S200_L1_D16_T5919.335938_C31.png](assets/doc/img/cornell-box_S200_L1_D16_T5919.335938_C31.png)
+![cornell-box_S200_L1_D16_T5919.335938_C31.png](doc/img/cornell-box_S200_L1_D16_T5919.335938_C31.png)
 - case 2:spp=800, Depth=10.
-![veach-mis_S800_L1_D10_T4538.038086_C31.png](assets/doc/img/veach-mis_S800_L1_D10_T4538.038086_C31.png)
+![veach-mis_S800_L1_D10_T4538.038086_C31.png](doc/img/veach-mis_S800_L1_D10_T4538.038086_C31.png)
 - case 3：spp=800, Depth=5.
-![bathroom2_S800_L1_D5_T7108.475586_C31.png](assets/doc/img/bathroom2_S800_L1_D5_T7108.475586_C31.png)
+![bathroom2_S800_L1_D5_T7108.475586_C31.png](doc/img/bathroom2_S800_L1_D5_T7108.475586_C31.png)
 
 # 3 架构与实现
 光栅化及窗口管理部分基本结构如图所示，本项目聚焦于光线追踪，所以不加赘述。
@@ -331,7 +331,7 @@ glm::vec3 MonteCarloPathTracer::Li(const Ray ray,PathTraceRecord& pRecord){
 
 采用SAH算法显著提高了BVH的构建效率，下图对比了SAH和普通做法（排序+取中点）的构建差异。
 
-![img/sah.png](assets/doc/img/sah.png)
+![img/sah.png](doc/img/sah.png)
 
 为了光线求交的方便，我将TLAS和BLAS都作为为AccelStruct类的派生类，该基类提供了光线与BVH的遍历功能。
 ```c++
